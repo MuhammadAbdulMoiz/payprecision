@@ -27,7 +27,9 @@ const STYLES = `
   th { text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: #64748b; padding: 8px 12px; border-bottom: 2px solid #e2e8f0; }
   td { padding: 10px 12px; border-bottom: 1px solid #f1f5f9; font-size: 14px; }
   td:last-child { text-align: right; font-weight: 600; font-variant-numeric: tabular-nums; }
-  .total-row td { border-top: 2px solid #3b82f6; border-bottom: none; font-size: 16px; font-weight: 700; color: #3b82f6; }
+  .total-row td { border-top: 2px solid #3b82f6; border-bottom: none; font-size: 16px; font-weight: 700; color: #3b82f6; padding-top: 14px; }
+  .credit-row td { color: #16a34a; }
+  .debit-row td { color: #dc2626; }
   .badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 700; }
   .badge-green { background: #dcfce7; color: #16a34a; }
   .badge-amber { background: #fef3c7; color: #d97706; }
@@ -40,6 +42,7 @@ export function downloadInvoice(results, params) {
   const date = new Date()
   const invNum = `PP-${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
   const dateStr = date.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
+  const isFullTime = params.employeeType === 'fulltime'
 
   const html = `<!DOCTYPE html><html><head><style>${STYLES}</style></head><body>
     <div class="header">
@@ -50,7 +53,7 @@ export function downloadInvoice(results, params) {
       <div class="meta">
         <strong>Invoice ${invNum}</strong>
         Date: ${dateStr}<br>
-        Type: ${params.employeeType === 'intern' ? 'Intern' : 'Full-time'}
+        Type: ${isFullTime ? 'Full-time Employee' : 'Intern'}
       </div>
     </div>
 
@@ -66,17 +69,15 @@ export function downloadInvoice(results, params) {
 
     ${results.offsetDays > 0 ? `<div class="note">${results.offsetDays} day(s) offset: leave and extra cancel out. ${results.remainingExtra > 0 ? results.remainingExtra + ' extra day(s) at 1.5x overtime.' : ''} ${results.remainingLeave > 0 ? results.remainingLeave + ' leave day(s) deducted.' : ''}</div>` : ''}
 
-    <h2>Salary Breakdown</h2>
+    <h2>Salary Statement</h2>
     <table>
-      <tr><th>Component</th><th style="text-align:right">Amount (PKR)</th></tr>
-      <tr><td>Base Salary (Income × Dollar Rate)</td><td>${fmt(results.monthlyPKR)}</td></tr>
-      <tr><td>Daily Wage</td><td>${fmt(results.dailyWage)}</td></tr>
-      <tr><td>Overtime Rate (1.5x)</td><td>${fmt(results.overtimeRate)}</td></tr>
-      ${results.offsetDays > 0 ? `<tr><td>Leave-Extra Offset <span class="badge badge-amber">${results.offsetDays} days cancel out</span></td><td>0.00</td></tr>` : ''}
-      <tr><td>Extra Pay (${results.remainingExtra} overtime day${results.remainingExtra !== 1 ? 's' : ''})</td><td style="color:#16a34a">+${fmt(results.extraPay)}</td></tr>
-      <tr><td>Leave Deduction (${results.remainingLeave} day${results.remainingLeave !== 1 ? 's' : ''})</td><td style="color:#dc2626">-${fmt(results.leaveDeduction)}</td></tr>
-      ${results.attendanceBonus > 0 ? `<tr><td>Perfect Attendance Bonus <span class="badge badge-green">BONUS</span></td><td style="color:#16a34a">+${fmt(results.attendanceBonus)}</td></tr>` : ''}
-      <tr class="total-row"><td>Final Salary</td><td>PKR ${fmt(results.finalSalary)}</td></tr>
+      <tr><th>Line Item</th><th style="text-align:right">Amount (PKR)</th></tr>
+      <tr><td>Base Salary <span style="font-size:11px;color:#94a3b8">(${fmt(parseFloat(params.income))} USD × ${fmt(parseFloat(params.dollarRate))})</span></td><td>${fmt(results.monthlyPKR)}</td></tr>
+      ${results.extraPay > 0 ? `<tr class="credit-row"><td>Extra Work Pay <span style="font-size:11px">(${results.remainingExtra} day${results.remainingExtra !== 1 ? 's' : ''} at 1.5× overtime rate)</span></td><td>+${fmt(results.extraPay)}</td></tr>` : ''}
+      ${results.attendanceBonus > 0 ? `<tr class="credit-row"><td>Attendance Bonus <span class="badge badge-green">BONUS</span></td><td>+${fmt(results.attendanceBonus)}</td></tr>` : ''}
+      ${results.leaveDeduction > 0 ? `<tr class="debit-row"><td>Leave Deduction <span style="font-size:11px">(${results.remainingLeave} day${results.remainingLeave !== 1 ? 's' : ''} at daily rate)</span></td><td>−${fmt(results.leaveDeduction)}</td></tr>` : ''}
+      ${isFullTime && results.providentFund > 0 ? `<tr class="debit-row"><td>Provident Fund <span style="font-size:11px">(5% of base salary)</span></td><td>−${fmt(results.providentFund)}</td></tr>` : ''}
+      <tr class="total-row"><td>Net Salary</td><td>PKR ${fmt(results.finalSalary)}</td></tr>
     </table>
 
     <div class="footer">

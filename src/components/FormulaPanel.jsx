@@ -1,15 +1,22 @@
 import { useState } from 'react'
 
-function fmt(v) {
+function fmtCurrency(v, currency, dollarRate) {
   if (typeof v !== 'number' || isNaN(v)) return '---'
-  return v.toLocaleString('en-PK', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+  const amount = currency === 'USD' && dollarRate > 0 ? v / dollarRate : v
+  const prefix = currency === 'USD' ? '$' : 'PKR '
+  return prefix + amount.toLocaleString(currency === 'USD' ? 'en-US' : 'en-PK', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })
 }
 
-export default function FormulaPanel({ results, isValid }) {
+export default function FormulaPanel({ results, isValid, currency = 'PKR', dollarRate = 1, employeeType = 'intern' }) {
   const [open, setOpen] = useState(false)
 
   const baseSum = isValid ? results.monthlyPKR : 0
-  const adjustments = isValid ? (results.extraPay - results.leaveDeduction + results.attendanceBonus) : 0
+  const adjustments = isValid
+    ? (results.extraPay - results.leaveDeduction + results.attendanceBonus - (results.providentFund ?? 0))
+    : 0
   const netEffect = isValid ? results.finalSalary : 0
 
   return (
@@ -51,6 +58,12 @@ export default function FormulaPanel({ results, isValid }) {
                   <span className="text-emerald-400 light:text-emerald-600">Attendance_Bonus</span>
                 </>
               )}
+              {employeeType === 'fulltime' && (
+                <>
+                  <span className="text-slate-400"> &nbsp;- </span>
+                  <span className="text-red-400 light:text-red-600">Provident_Fund (5%)</span>
+                </>
+              )}
             </code>
           </div>
 
@@ -59,19 +72,19 @@ export default function FormulaPanel({ results, isValid }) {
             <div>
               <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-500">Base Sum</p>
               <p className="mt-1 text-lg font-bold tabular-nums text-slate-200 light:text-slate-800">
-                PKR {fmt(baseSum)}
+                {fmtCurrency(baseSum, currency, dollarRate)}
               </p>
             </div>
             <div>
               <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-500">Adjustments</p>
               <p className={`mt-1 text-lg font-bold tabular-nums ${adjustments >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-                {adjustments >= 0 ? '+' : ''}PKR {fmt(adjustments)}
+                {adjustments >= 0 ? '+' : ''}{fmtCurrency(adjustments, currency, dollarRate)}
               </p>
             </div>
             <div>
               <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-500">Net Effect</p>
               <p className="mt-1 text-lg font-bold tabular-nums text-blue-400">
-                PKR {fmt(netEffect)}
+                {fmtCurrency(netEffect, currency, dollarRate)}
               </p>
             </div>
           </div>

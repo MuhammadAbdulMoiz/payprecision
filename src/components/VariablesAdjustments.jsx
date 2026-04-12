@@ -1,15 +1,18 @@
 import InputField from './InputField'
 
 const BONUS_OPTIONS = [
-  { key: '1month', label: '1 Month', amount: 4000 },
-  { key: '3months', label: '3 Months', amount: 10000 },
-  { key: '6months', label: '6 Months', amount: 20000 },
+  { key: '1month', label: '1 Month', fixed: false },
+  { key: '3months', label: '3 Months', amount: 10000, fixed: true },
+  { key: '6months', label: '6 Months', amount: 20000, fixed: true },
 ]
 
 export default function VariablesAdjustments({
   extraDays, onExtraDaysChange,
   leaveDays, onLeaveDaysChange,
   attendanceBonuses, onAttendanceBonusesChange,
+  bonus1Month, onBonus1MonthChange,
+  bonus1MonthCurrency, onBonus1MonthCurrencyChange,
+  dollarRate,
   errors,
 }) {
   const toggleBonus = (key) => {
@@ -18,10 +21,19 @@ export default function VariablesAdjustments({
     )
   }
 
+  // Returns PKR amount for display purposes (bonus1Month may be in USD)
+  const getDisplayAmount = (opt) => {
+    if (opt.fixed) return opt.amount
+    const raw = Number(bonus1Month) || 0
+    return bonus1MonthCurrency === 'USD' ? raw * (dollarRate || 1) : raw
+  }
+
   const totalBonus = attendanceBonuses.reduce((sum, key) => {
     const opt = BONUS_OPTIONS.find((o) => o.key === key)
-    return sum + (opt ? opt.amount : 0)
+    return sum + (opt ? getDisplayAmount(opt) : 0)
   }, 0)
+
+  const is1MonthActive = attendanceBonuses.includes('1month')
 
   return (
     <div className="glass rounded-2xl p-5">
@@ -86,7 +98,7 @@ export default function VariablesAdjustments({
           tooltip="Unpaid leave days. Extra days offset these first (cancel out)."
         />
 
-        {/* Perfect Attendance Bonus - Multi-select */}
+        {/* Perfect Attendance Bonus */}
         <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-4">
           <div className="mb-3 flex items-center gap-2">
             <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-500/20">
@@ -96,13 +108,14 @@ export default function VariablesAdjustments({
             </div>
             <div>
               <p className="text-sm font-medium text-slate-200 light:text-slate-700">Perfect Attendance Bonus</p>
-              <p className="text-[11px] text-slate-500">Select all that apply (multi-select)</p>
+              <p className="text-[11px] text-slate-500">1-month is editable · others are fixed</p>
             </div>
           </div>
 
           <div className="grid grid-cols-3 gap-2">
             {BONUS_OPTIONS.map((opt) => {
               const active = attendanceBonuses.includes(opt.key)
+              const displayPKR = getDisplayAmount(opt)
               return (
                 <button
                   key={opt.key}
@@ -119,19 +132,51 @@ export default function VariablesAdjustments({
                     </svg>
                   )}
                   <p className="text-[11px] font-medium">{opt.label}</p>
-                  <p className={`text-xs font-bold tabular-nums ${
-                    active ? 'text-emerald-100' : 'text-slate-300 light:text-slate-700'
-                  }`}>
-                    +{opt.amount.toLocaleString()}
+                  <p className={`text-xs font-bold tabular-nums ${active ? 'text-emerald-100' : 'text-slate-300 light:text-slate-700'}`}>
+                    +{Math.round(displayPKR).toLocaleString()}
                   </p>
                 </button>
               )
             })}
           </div>
 
+          {/* Editable 1-month amount with currency toggle */}
+          {is1MonthActive && (
+            <div className="mt-3">
+              <div className="mb-1 flex items-center justify-between">
+                <label className="text-[10px] font-semibold uppercase tracking-wider text-emerald-300">
+                  1-Month Bonus Amount
+                </label>
+                <button
+                  onClick={() => onBonus1MonthCurrencyChange((c) => c === 'PKR' ? 'USD' : 'PKR')}
+                  className="rounded px-2 py-0.5 text-[10px] font-bold transition-colors bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30"
+                >
+                  {bonus1MonthCurrency}
+                </button>
+              </div>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-emerald-400">
+                  {bonus1MonthCurrency === 'USD' ? '$' : '₨'}
+                </span>
+                <input
+                  type="number"
+                  min="0"
+                  value={bonus1Month}
+                  onChange={(e) => onBonus1MonthChange(e.target.value === '' ? 0 : Number(e.target.value))}
+                  className="w-full rounded-lg border border-emerald-500/30 bg-emerald-500/10 pl-7 pr-3 py-1.5 text-sm font-semibold text-emerald-200 outline-none focus:border-emerald-400/60 focus:bg-emerald-500/15 transition-colors"
+                />
+              </div>
+              {bonus1MonthCurrency === 'USD' && (
+                <p className="mt-1 text-[10px] text-emerald-400/70">
+                  ≈ PKR {Math.round((Number(bonus1Month) || 0) * (dollarRate || 1)).toLocaleString()}
+                </p>
+              )}
+            </div>
+          )}
+
           {totalBonus > 0 && (
             <p className="mt-2 text-[11px] text-emerald-400">
-              Total bonus: +PKR {totalBonus.toLocaleString()} added to final salary
+              Total bonus: +PKR {Math.round(totalBonus).toLocaleString()} added to final salary
             </p>
           )}
         </div>

@@ -22,6 +22,120 @@ function invId(iso, idx) {
   return `#PP-${y}-${m}-${String(idx + 1).padStart(2, '0')}`
 }
 
+function downloadCSV(entries) {
+  const headers = ['Invoice ID', 'Date', 'Base Salary (PKR)', 'Extra Pay (PKR)', 'Leave Deduction (PKR)', 'Attendance Bonus (PKR)', 'Provident Fund (PKR)', 'Final Salary (PKR)']
+  const rows = entries.map((e, idx) => [
+    invId(e.date, idx),
+    formatDate(e.date),
+    (e.results.monthlyPKR || 0).toFixed(2),
+    (e.results.extraPay || 0).toFixed(2),
+    (e.results.leaveDeduction || 0).toFixed(2),
+    (e.results.attendanceBonus || 0).toFixed(2),
+    (e.results.providentFund || 0).toFixed(2),
+    (e.results.finalSalary || 0).toFixed(2),
+  ])
+  const csv = [headers, ...rows].map((r) => r.join(',')).join('\n')
+  const blob = new Blob([csv], { type: 'text/csv' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `payprecision-history-${new Date().toISOString().slice(0, 10)}.csv`
+  a.click()
+  URL.revokeObjectURL(url)
+}
+
+// SVG salary projection chart
+function SalaryChart({ entries }) {
+  if (entries.length < 2) return null
+
+  const sorted = [...entries].sort((a, b) => new Date(a.date) - new Date(b.date)).slice(-12)
+  const salaries = sorted.map((e) => e.results.finalSalary || 0)
+  const min = Math.min(...salaries)
+  const max = Math.max(...salaries)
+  const range = max - min || 1
+
+  const W = 600
+  const H = 140
+  const PAD = { top: 16, right: 16, bottom: 32, left: 64 }
+  const chartW = W - PAD.left - PAD.right
+  const chartH = H - PAD.top - PAD.bottom
+
+  const pts = sorted.map((e, i) => {
+    const x = PAD.left + (i / (sorted.length - 1)) * chartW
+    const y = PAD.top + chartH - ((e.results.finalSalary - min) / range) * chartH
+    return { x, y, e }
+  })
+
+  const polyline = pts.map((p) => `${p.x},${p.y}`).join(' ')
+  // Filled area path
+  const area = `M${pts[0].x},${PAD.top + chartH} ` +
+    pts.map((p) => `L${p.x},${p.y}`).join(' ') +
+    ` L${pts[pts.length - 1].x},${PAD.top + chartH} Z`
+
+  // Y axis labels
+  const yTicks = [0, 0.5, 1].map((t) => ({
+    value: min + t * range,
+    y: PAD.top + chartH - t * chartH,
+  }))
+
+  return (
+    <div className="glass rounded-2xl p-5 mb-6">
+      <div className="mb-3 flex items-center justify-between">
+        <h3 className="text-sm font-semibold uppercase tracking-wider text-slate-400">
+          Salary Projection
+        </h3>
+        <span className="text-[10px] text-slate-500">Last {sorted.length} entries</span>
+      </div>
+      <svg viewBox={`0 0 ${W} ${H}`} className="w-full" style={{ height: 140 }}>
+        <defs>
+          <linearGradient id="chartGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.35" />
+            <stop offset="100%" stopColor="#3b82f6" stopOpacity="0.02" />
+          </linearGradient>
+        </defs>
+
+        {/* Grid lines */}
+        {yTicks.map((t, i) => (
+          <line key={i} x1={PAD.left} y1={t.y} x2={W - PAD.right} y2={t.y}
+            stroke="rgba(255,255,255,0.06)" strokeWidth="1" />
+        ))}
+
+        {/* Y axis labels */}
+        {yTicks.map((t, i) => (
+          <text key={i} x={PAD.left - 6} y={t.y + 4} textAnchor="end"
+            fontSize="9" fill="rgba(148,163,184,0.8)">
+            {t.value >= 1000 ? `${(t.value / 1000).toFixed(0)}k` : t.value.toFixed(0)}
+          </text>
+        ))}
+
+        {/* Area fill */}
+        <path d={area} fill="url(#chartGrad)" />
+
+        {/* Line */}
+        <polyline points={polyline} fill="none" stroke="#3b82f6" strokeWidth="2" strokeLinejoin="round" />
+
+        {/* Dots */}
+        {pts.map((p, i) => (
+          <circle key={i} cx={p.x} cy={p.y} r="3.5" fill="#3b82f6" stroke="#0f172a" strokeWidth="2" />
+        ))}
+
+        {/* X axis labels — show first, middle, last */}
+        {[0, Math.floor(sorted.length / 2), sorted.length - 1].map((i) => {
+          if (!pts[i]) return null
+          const d = new Date(sorted[i].date)
+          const label = d.toLocaleDateString('en-US', { month: 'short', year: '2-digit' })
+          return (
+            <text key={i} x={pts[i].x} y={H - 6} textAnchor="middle"
+              fontSize="9" fill="rgba(148,163,184,0.7)">
+              {label}
+            </text>
+          )
+        })}
+      </svg>
+    </div>
+  )
+}
+
 export default function HistoryPanel({ entries, onClear, onDelete, onDownloadReport }) {
   const [search, setSearch] = useState('')
   const [yearFilter, setYearFilter] = useState('all')
@@ -54,14 +168,24 @@ export default function HistoryPanel({ entries, onClear, onDelete, onDownloadRep
           <h2 className="text-3xl font-bold text-white light:text-slate-800">Earnings History</h2>
           <p className="mt-1 text-sm text-slate-400">Track and analyze your professional revenue stream over time.</p>
         </div>
-        {entries.length > 0 && (
-          <button
-            onClick={onClear}
-            className="rounded-lg border border-red-500/30 px-3 py-1.5 text-xs font-medium text-red-400 transition-colors hover:bg-red-500/10"
-          >
-            Clear All
-          </button>
-        )}
+        <div className="flex items-center gap-2">
+          {entries.length > 0 && (
+            <>
+              <button
+                onClick={() => downloadCSV(entries)}
+                className="rounded-lg border border-emerald-500/30 px-3 py-1.5 text-xs font-medium text-emerald-400 transition-colors hover:bg-emerald-500/10"
+              >
+                Export CSV
+              </button>
+              <button
+                onClick={onClear}
+                className="rounded-lg border border-red-500/30 px-3 py-1.5 text-xs font-medium text-red-400 transition-colors hover:bg-red-500/10"
+              >
+                Clear All
+              </button>
+            </>
+          )}
+        </div>
       </div>
 
       {entries.length === 0 ? (
@@ -74,6 +198,9 @@ export default function HistoryPanel({ entries, onClear, onDelete, onDownloadRep
         </div>
       ) : (
         <>
+          {/* Salary projection chart */}
+          <SalaryChart entries={entries} />
+
           {/* Filters */}
           <div className="flex flex-wrap items-center gap-3">
             <div className="relative flex-1">

@@ -16,6 +16,9 @@ import ResultsPanel from './components/ResultsPanel'
 import FormulaPanel from './components/FormulaPanel'
 import BottomNav from './components/BottomNav'
 import HistoryPanel from './components/HistoryPanel'
+import GoalsPage from './components/GoalsPage'
+import InsightsPage from './components/InsightsPage'
+import SettingsPage from './components/SettingsPage'
 
 const DEFAULTS = {
   employeeType: 'intern',
@@ -77,11 +80,19 @@ export default function App() {
   const [publicHolidays, setPublicHolidays] = useLocalStorage('pp-holidays', DEFAULTS.publicHolidays)
   const [theme, setTheme] = useLocalStorage('pp-theme', DEFAULTS.theme)
   const [rawAttendance, setAttendanceBonuses] = useLocalStorage('pp-attendance', [])
+  const [globalCurrency, setGlobalCurrency] = useLocalStorage('pp-currency', 'PKR')
+  const [bonus1Month, setBonus1Month] = useLocalStorage('pp-bonus1m', 4000)
+  const [bonus1MonthCurrency, setBonus1MonthCurrency] = useLocalStorage('pp-bonus1m-cur', 'PKR')
+  const [enabledPages, setEnabledPages] = useLocalStorage('pp-pages', { history: true, goals: true, insights: false })
   const attendanceBonuses = Array.isArray(rawAttendance) ? rawAttendance : []
 
   const { entries, addEntry, clearHistory, deleteEntry } = useHistory()
 
-  const BONUS_MAP = { '1month': 4000, '3months': 10000, '6months': 20000 }
+  const parsedRate = parseFloat(dollarRate) || 1
+  const bonus1PKR = bonus1MonthCurrency === 'USD'
+    ? (Number(bonus1Month) || 0) * parsedRate
+    : (Number(bonus1Month) || 0)
+  const BONUS_MAP = { '1month': bonus1PKR, '3months': 10000, '6months': 20000 }
   const bonusAmount = attendanceBonuses.reduce((sum, key) => sum + (BONUS_MAP[key] || 0), 0)
 
   const dynamicWorkingDays = useWorkingDays(selectedMonth, parseFloat(publicHolidays) || 0)
@@ -98,7 +109,7 @@ export default function App() {
   const isValid = !errors.income && !errors.dollarRate && !errors.workingDays && !errors.extraDays && !errors.leaveDays
 
   const results = useMemo(() => {
-    if (!isValid) return { monthlyPKR: 0, dailyWage: 0, overtimeRate: 0, extraPay: 0, leaveDeduction: 0, offsetDays: 0, remainingExtra: 0, remainingLeave: 0, attendanceBonus: 0, finalSalary: 0 }
+    if (!isValid) return { monthlyPKR: 0, dailyWage: 0, overtimeRate: 0, extraPay: 0, leaveDeduction: 0, offsetDays: 0, remainingExtra: 0, remainingLeave: 0, attendanceBonus: 0, providentFund: 0, finalSalary: 0 }
     return calculateSalary({
       income: parseFloat(income),
       dollarRate: parseFloat(dollarRate),
@@ -106,8 +117,9 @@ export default function App() {
       extraDays: parseFloat(extraDays),
       leaveDays: parseFloat(leaveDays),
       attendanceBonus: bonusAmount,
+      empType: employeeType,
     })
-  }, [isValid, income, dollarRate, workingDays, extraDays, leaveDays, bonusAmount])
+  }, [isValid, income, dollarRate, workingDays, extraDays, leaveDays, bonusAmount, employeeType])
 
   useEffect(() => {
     document.documentElement.classList.toggle('dark', theme === 'dark')
@@ -123,6 +135,10 @@ export default function App() {
   const handleThemeToggle = useCallback(() => {
     setTheme((t) => (t === 'dark' ? 'light' : 'dark'))
   }, [setTheme])
+
+  const handleCurrencyToggle = useCallback(() => {
+    setGlobalCurrency((c) => (c === 'PKR' ? 'USD' : 'PKR'))
+  }, [setGlobalCurrency])
 
   const handleReset = useCallback(() => {
     setEmployeeType(DEFAULTS.employeeType)
@@ -153,6 +169,8 @@ export default function App() {
     )
   }, [isValid, addEntry, employeeType, income, dollarRate, workingDays, extraDays, leaveDays, bonusAmount, results])
 
+  const parsedDollarRate = parsedRate
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#0f172a] to-[#1e293b] transition-colors light:from-[#f0f4ff] light:to-[#e2e8f0]">
       <div className="mx-auto max-w-5xl">
@@ -161,11 +179,18 @@ export default function App() {
           onTabChange={setActiveTab}
           isDark={theme === 'dark'}
           onThemeToggle={handleThemeToggle}
+          enabledPages={enabledPages}
         />
 
-        {activeTab === 'calculator' ? (
+        {activeTab === 'calculator' && (
           <main className="space-y-4 px-6 pb-8">
-            <SummaryCard finalSalary={results.finalSalary} isValid={isValid} />
+            <SummaryCard
+              finalSalary={results.finalSalary}
+              isValid={isValid}
+              globalCurrency={globalCurrency}
+              dollarRate={parsedDollarRate}
+              onGlobalToggle={handleCurrencyToggle}
+            />
 
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-4">
@@ -195,6 +220,11 @@ export default function App() {
                   onLeaveDaysChange={setLeaveDays}
                   attendanceBonuses={attendanceBonuses}
                   onAttendanceBonusesChange={setAttendanceBonuses}
+                  bonus1Month={bonus1Month}
+                  onBonus1MonthChange={setBonus1Month}
+                  bonus1MonthCurrency={bonus1MonthCurrency}
+                  onBonus1MonthCurrencyChange={setBonus1MonthCurrency}
+                  dollarRate={parsedDollarRate}
                   errors={errors}
                 />
               </div>
@@ -204,9 +234,17 @@ export default function App() {
                   dailyWage={results.dailyWage}
                   overtimeRate={results.overtimeRate}
                   isValid={isValid}
+                  globalCurrency={globalCurrency}
+                  dollarRate={parsedDollarRate}
                 />
 
-                <ResultsPanel results={results} isValid={isValid} />
+                <ResultsPanel
+                  results={results}
+                  isValid={isValid}
+                  globalCurrency={globalCurrency}
+                  dollarRate={parsedDollarRate}
+                  employeeType={employeeType}
+                />
 
                 <BottomNav
                   onReset={handleReset}
@@ -241,7 +279,13 @@ export default function App() {
               </div>
             </div>
 
-            <FormulaPanel results={results} isValid={isValid} />
+            <FormulaPanel
+              results={results}
+              isValid={isValid}
+              currency={globalCurrency}
+              dollarRate={parsedDollarRate}
+              employeeType={employeeType}
+            />
 
             <div className="flex items-center gap-2 rounded-xl bg-blue-500/10 p-3">
               <svg className="h-4 w-4 shrink-0 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
@@ -253,13 +297,37 @@ export default function App() {
               </p>
             </div>
           </main>
-        ) : (
+        )}
+
+        {activeTab === 'history' && (
           <main className="px-6 pb-8">
             <HistoryPanel
               entries={entries}
               onClear={clearHistory}
               onDelete={deleteEntry}
               onDownloadReport={handleDownloadReport}
+            />
+          </main>
+        )}
+
+        {activeTab === 'goals' && (
+          <main className="px-6 pb-8">
+            <GoalsPage finalSalary={results.finalSalary} />
+          </main>
+        )}
+
+        {activeTab === 'insights' && enabledPages?.insights && (
+          <main className="px-6 pb-8">
+            <InsightsPage entries={entries} finalSalary={results.finalSalary} />
+          </main>
+        )}
+
+        {activeTab === 'settings' && (
+          <main className="px-6 pb-8">
+            <SettingsPage
+              enabledPages={enabledPages}
+              onEnabledPagesChange={setEnabledPages}
+              onTabChange={setActiveTab}
             />
           </main>
         )}
