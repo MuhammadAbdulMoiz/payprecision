@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(podman build *)",
+      "Bash(podman stop *)",
+      "Bash(podman rm *)",
+      "Bash(podman volume *)",
+      "Bash(podman run *)",
+      "Bash(podman restart *)",
+      "Bash(podman ps *)"
+    ]
+  }
+}

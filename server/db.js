@@ -67,6 +67,31 @@ function initSchema(db) {
     );
 
     CREATE UNIQUE INDEX IF NOT EXISTS budgets_cat_month ON budgets(category, month);
+
+    CREATE TABLE IF NOT EXISTS ai_reimbursements (
+      id         TEXT PRIMARY KEY,
+      name       TEXT NOT NULL,
+      amount     REAL NOT NULL DEFAULT 10,
+      applied    INTEGER NOT NULL DEFAULT 0,
+      has_logo   INTEGER NOT NULL DEFAULT 0,
+      created_at TEXT DEFAULT (datetime('now')),
+      updated_at TEXT DEFAULT (datetime('now'))
+    );
+
+    CREATE TABLE IF NOT EXISTS laptop_reimbursements (
+      id             TEXT PRIMARY KEY,
+      name           TEXT NOT NULL,
+      ram            TEXT DEFAULT '',
+      ssd            TEXT DEFAULT '',
+      gpu            TEXT DEFAULT '',
+      processor      TEXT DEFAULT '',
+      total_amount   REAL NOT NULL DEFAULT 0,
+      monthly_amount REAL NOT NULL DEFAULT 0,
+      start_date     TEXT DEFAULT '',
+      has_image      INTEGER NOT NULL DEFAULT 0,
+      created_at     TEXT DEFAULT (datetime('now')),
+      updated_at     TEXT DEFAULT (datetime('now'))
+    );
   `)
 
   // Migrations — add new columns if they don't exist yet

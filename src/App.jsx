@@ -4,6 +4,7 @@ import { useWorkingDays } from './hooks/useWorkingDays'
 import { calculateSalary } from './utils/calculate'
 
 import { useHistory } from './hooks/useHistory'
+import { useReimbursements } from './hooks/useReimbursements'
 
 import { downloadInvoice, downloadAnnualReport } from './utils/pdf'
 
@@ -19,6 +20,7 @@ import HistoryPanel from './components/HistoryPanel'
 import GoalsPage from './components/GoalsPage'
 import InsightsPage from './components/InsightsPage'
 import SettingsPage from './components/SettingsPage'
+import ReimbursementsPanel from './components/ReimbursementsPanel'
 
 const DEFAULTS = {
   employeeType: 'intern',
@@ -84,9 +86,16 @@ export default function App() {
   const [bonus1Month, setBonus1Month] = useLocalStorage('pp-bonus1m', 4000)
   const [bonus1MonthCurrency, setBonus1MonthCurrency] = useLocalStorage('pp-bonus1m-cur', 'PKR')
   const [enabledPages, setEnabledPages] = useLocalStorage('pp-pages', { history: true, goals: true, insights: false })
+  const [annualBonus, setAnnualBonus] = useLocalStorage('pp-annual-bonus', '')
+  const [annualBonusCurrency, setAnnualBonusCurrency] = useLocalStorage('pp-annual-bonus-cur', 'PKR')
   const attendanceBonuses = Array.isArray(rawAttendance) ? rawAttendance : []
 
   const { entries, addEntry, clearHistory, deleteEntry } = useHistory()
+  const {
+    aiItems, laptopItems,
+    addAI, updateAI, deleteAI, uploadAILogo,
+    addLaptop, updateLaptop, deleteLaptop, uploadLaptopImage,
+  } = useReimbursements()
 
   const parsedRate = parseFloat(dollarRate) || 1
   const bonus1PKR = bonus1MonthCurrency === 'USD'
@@ -154,8 +163,13 @@ export default function App() {
 
   const handleDownloadInvoice = useCallback(() => {
     if (!isValid) return
-    downloadInvoice(results, { employeeType, income, dollarRate, workingDays, extraDays, leaveDays })
-  }, [isValid, results, employeeType, income, dollarRate, workingDays, extraDays, leaveDays])
+    downloadInvoice(
+      results,
+      { employeeType, income, dollarRate, workingDays, extraDays, leaveDays },
+      { aiItems, laptopItems },
+      { amount: annualBonus, currency: annualBonusCurrency, dollarRate: parsedRate },
+    )
+  }, [isValid, results, employeeType, income, dollarRate, workingDays, extraDays, leaveDays, aiItems, laptopItems, annualBonus, annualBonusCurrency, parsedRate])
 
   const handleDownloadReport = useCallback(() => {
     downloadAnnualReport(entries)
@@ -226,6 +240,10 @@ export default function App() {
                   onBonus1MonthCurrencyChange={setBonus1MonthCurrency}
                   dollarRate={parsedDollarRate}
                   errors={errors}
+                  annualBonus={annualBonus}
+                  onAnnualBonusChange={setAnnualBonus}
+                  annualBonusCurrency={annualBonusCurrency}
+                  onAnnualBonusCurrencyChange={setAnnualBonusCurrency}
                 />
               </div>
 
@@ -276,6 +294,19 @@ export default function App() {
                   </svg>
                   Download Invoice
                 </button>
+
+                <ReimbursementsPanel
+                  aiItems={aiItems}
+                  laptopItems={laptopItems}
+                  onAddAI={addAI}
+                  onUpdateAI={updateAI}
+                  onDeleteAI={deleteAI}
+                  onUploadAILogo={uploadAILogo}
+                  onAddLaptop={addLaptop}
+                  onUpdateLaptop={updateLaptop}
+                  onDeleteLaptop={deleteLaptop}
+                  onUploadLaptopImage={uploadLaptopImage}
+                />
               </div>
             </div>
 

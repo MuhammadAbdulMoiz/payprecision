@@ -14,6 +14,8 @@ export default function VariablesAdjustments({
   bonus1MonthCurrency, onBonus1MonthCurrencyChange,
   dollarRate,
   errors,
+  annualBonus, onAnnualBonusChange,
+  annualBonusCurrency, onAnnualBonusCurrencyChange,
 }) {
   const toggleBonus = (key) => {
     onAttendanceBonusesChange((prev) =>
@@ -180,6 +182,59 @@ export default function VariablesAdjustments({
             </p>
           )}
         </div>
+
+        {/* Annual Bonus */}
+        <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-4">
+          <div className="mb-3 flex items-center gap-2">
+            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-amber-500/20">
+              <svg className="h-4 w-4 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                <path d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <div>
+              <p className="text-sm font-medium text-slate-200 light:text-slate-700">Annual Bonus</p>
+              <p className="text-[11px] text-slate-500">One-time bonus — shown on invoice only</p>
+            </div>
+          </div>
+
+          <div>
+            <div className="mb-1 flex items-center justify-between">
+              <label className="text-[10px] font-semibold uppercase tracking-wider text-amber-300">
+                Bonus Amount
+              </label>
+              <button
+                onClick={() => onAnnualBonusCurrencyChange((c) => c === 'PKR' ? 'USD' : 'PKR')}
+                className="rounded px-2 py-0.5 text-[10px] font-bold transition-colors bg-amber-500/20 text-amber-300 hover:bg-amber-500/30"
+              >
+                {annualBonusCurrency}
+              </button>
+            </div>
+            <div className="relative">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-amber-400">
+                {annualBonusCurrency === 'USD' ? '$' : '₨'}
+              </span>
+              <input
+                type="number"
+                min="0"
+                placeholder="0"
+                value={annualBonus}
+                onChange={(e) => onAnnualBonusChange(e.target.value)}
+                className="w-full rounded-lg border border-amber-500/30 bg-amber-500/10 pl-7 pr-3 py-1.5 text-sm font-semibold text-amber-200 outline-none focus:border-amber-400/60 focus:bg-amber-500/15 transition-colors placeholder:text-amber-900"
+              />
+            </div>
+            {annualBonusCurrency === 'USD' && annualBonus && (
+              <p className="mt-1 text-[10px] text-amber-400/70">
+                ≈ PKR {Math.round((Number(annualBonus) || 0) * (dollarRate || 1)).toLocaleString()}
+              </p>
+            )}
+            {annualBonus && Number(annualBonus) > 0 && (
+              <p className="mt-1 text-[11px] text-amber-400">
+                Will appear as a bonus line on your invoice
+              </p>
+            )}
+          </div>
+        </div>
+
       </div>
     </div>
   )
