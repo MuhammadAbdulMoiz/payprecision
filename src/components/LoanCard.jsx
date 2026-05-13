@@ -59,7 +59,7 @@ export default function LoanCard({ loan, goals = [], onDelete, onUpdate, onUploa
       ) : (
         <div className="absolute inset-0 bg-gradient-to-br from-red-900/80 to-slate-800" />
       )}
-      <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/40 to-transparent" />
+      <div className="absolute inset-0 bg-gradient-to-t from-red-950 via-red-900/30 to-transparent" />
 
       {/* Top-right actions */}
       <div className="absolute right-3 top-3 z-10 flex gap-1.5 opacity-0 transition-opacity group-hover:opacity-100">
