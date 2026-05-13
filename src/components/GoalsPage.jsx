@@ -1,12 +1,15 @@
 import { useState } from 'react'
 import { useGoals } from '../hooks/useGoals'
+import { useLoans } from '../hooks/useLoans'
 import GoalsDashboard from './GoalsDashboard'
 import GoalCard from './GoalCard'
 import GoalForm from './GoalForm'
 import ExpenseTracker from './ExpenseTracker'
+import LoansSection from './LoansSection'
 
 export default function GoalsPage({ finalSalary }) {
   const { goals, addGoal, updateGoal, deleteGoal } = useGoals()
+  const { loans, addLoan, updateLoan, deleteLoan, uploadLoanImage } = useLoans()
   const [showForm, setShowForm] = useState(false)
 
   const handleAddGoal = (data) => {
@@ -69,10 +72,21 @@ export default function GoalsPage({ finalSalary }) {
               onDelete={deleteGoal}
               onUpdate={updateGoal}
               finalSalary={finalSalary}
+              linkedLoans={loans.filter(l => l.goalId === goal.id)}
             />
           ))}
         </div>
       )}
+
+      {/* Loan Tracker */}
+      <LoansSection
+        goals={goals}
+        loans={loans}
+        onAdd={addLoan}
+        onUpdate={updateLoan}
+        onDelete={deleteLoan}
+        onUploadImage={uploadLoanImage}
+      />
 
       {/* Expense Tracker */}
       <div>

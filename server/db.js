@@ -92,6 +92,31 @@ function initSchema(db) {
       created_at     TEXT DEFAULT (datetime('now')),
       updated_at     TEXT DEFAULT (datetime('now'))
     );
+
+    CREATE TABLE IF NOT EXISTS loans (
+      id                  TEXT PRIMARY KEY,
+      lender_name         TEXT NOT NULL,
+      amount              REAL NOT NULL DEFAULT 0,
+      currency            TEXT NOT NULL DEFAULT 'PKR',
+      loan_date           TEXT NOT NULL,
+      purpose             TEXT DEFAULT '',
+      goal_id             TEXT DEFAULT NULL,
+      monthly_installment REAL NOT NULL DEFAULT 0,
+      status              TEXT NOT NULL DEFAULT 'active',
+      notes               TEXT DEFAULT '',
+      has_image           INTEGER NOT NULL DEFAULT 0,
+      created_at          TEXT DEFAULT (datetime('now')),
+      updated_at          TEXT DEFAULT (datetime('now'))
+    );
+
+    CREATE TABLE IF NOT EXISTS loan_payments (
+      id           TEXT PRIMARY KEY,
+      loan_id      TEXT NOT NULL,
+      amount       REAL NOT NULL DEFAULT 0,
+      payment_date TEXT NOT NULL,
+      note         TEXT DEFAULT '',
+      created_at   TEXT DEFAULT (datetime('now'))
+    );
   `)
 
   // Migrations — add new columns if they don't exist yet

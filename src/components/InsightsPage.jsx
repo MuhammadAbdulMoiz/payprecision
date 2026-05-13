@@ -157,26 +157,144 @@ function SalaryGrowthChart({ entries }) {
 
 const DEBT_KEY = 'pp-debts'
 
+function DebtRow({ debt, onPay, onEdit, onRemove }) {
+  const [mode, setMode] = useState(null) // null | 'pay' | 'edit'
+  const [payAmt, setPayAmt] = useState('')
+  const [editName, setEditName] = useState(debt.name)
+  const [editAmt, setEditAmt] = useState(String(debt.remaining ?? debt.amount))
+
+  const remaining = debt.remaining ?? debt.amount
+  const original  = debt.amount
+  const paid      = original - remaining
+  const progress  = original > 0 ? Math.min((paid / original) * 100, 100) : 0
+  const isPaid    = remaining <= 0
+
+  const handlePay = (e) => {
+    e.preventDefault()
+    const p = Math.min(Number(payAmt), remaining)
+    if (p > 0) { onPay(debt.id, p); setPayAmt(''); setMode(null) }
+  }
+
+  const handleEdit = (e) => {
+    e.preventDefault()
+    onEdit(debt.id, editName.trim() || debt.name, Number(editAmt) || debt.amount)
+    setMode(null)
+  }
+
+  return (
+    <div className={`rounded-lg px-3 py-2.5 ${isPaid ? 'bg-emerald-500/10' : 'bg-white/5'}`}>
+      {/* Main row */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2 min-w-0">
+          {isPaid && (
+            <span className="shrink-0 rounded-full bg-emerald-500/20 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-emerald-400">Paid</span>
+          )}
+          <span className={`text-sm truncate ${isPaid ? 'text-slate-500 line-through' : 'text-slate-300'}`}>{debt.name}</span>
+        </div>
+        <div className="flex items-center gap-2 shrink-0 ml-2">
+          <span className={`text-sm font-semibold tabular-nums ${isPaid ? 'text-slate-600' : 'text-red-400'}`}>
+            {isPaid ? 'PKR 0' : `-PKR ${fmtPKR(remaining)}`}
+          </span>
+          {!isPaid && (
+            <button onClick={() => setMode(mode === 'pay' ? null : 'pay')}
+              className="rounded bg-emerald-700/60 px-2 py-0.5 text-[10px] font-semibold text-emerald-300 hover:bg-emerald-600/60">
+              Pay
+            </button>
+          )}
+          <button onClick={() => setMode(mode === 'edit' ? null : 'edit')}
+            className="text-slate-600 hover:text-slate-300 text-[10px] px-1">
+            <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+              <path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+            </svg>
+          </button>
+          <button onClick={() => onRemove(debt.id)}
+            className="text-slate-600 hover:text-red-400">
+            <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+              <path d="M18 6L6 18M6 6l12 12"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      {/* Progress bar */}
+      {original > 0 && paid > 0 && (
+        <div className="mt-1.5">
+          <div className="h-1 overflow-hidden rounded-full bg-white/10">
+            <div className="h-full rounded-full bg-emerald-500/60 transition-all duration-500" style={{ width: `${progress}%` }} />
+          </div>
+          <div className="mt-0.5 flex justify-between text-[9px] text-slate-600">
+            <span>Paid PKR {fmtPKR(paid)}</span>
+            <span>{Math.round(progress)}% done</span>
+          </div>
+        </div>
+      )}
+
+      {/* Pay form */}
+      {mode === 'pay' && (
+        <form onSubmit={handlePay} className="mt-2 flex gap-1.5">
+          <input type="number" min="1" max={remaining} placeholder={`Max ${fmtPKR(remaining)}`}
+            value={payAmt} onChange={(e) => setPayAmt(e.target.value)} autoFocus required
+            className="flex-1 rounded border border-emerald-500/30 bg-emerald-900/20 px-2 py-1 text-xs text-white outline-none focus:border-emerald-400/60" />
+          <button type="submit" className="rounded bg-emerald-700 px-2.5 py-1 text-xs font-semibold text-white hover:bg-emerald-600">Confirm</button>
+          <button type="button" onClick={() => setMode(null)} className="rounded px-2 py-1 text-xs text-slate-500 hover:text-white">✕</button>
+        </form>
+      )}
+
+      {/* Edit form */}
+      {mode === 'edit' && (
+        <form onSubmit={handleEdit} className="mt-2 flex gap-1.5">
+          <input type="text" value={editName} onChange={(e) => setEditName(e.target.value)} placeholder="Name"
+            className="flex-1 rounded border border-white/10 bg-white/5 px-2 py-1 text-xs text-white outline-none focus:border-blue-400/50" />
+          <input type="number" min="1" value={editAmt} onChange={(e) => setEditAmt(e.target.value)} placeholder="Remaining"
+            className="w-28 rounded border border-white/10 bg-white/5 px-2 py-1 text-xs text-white outline-none focus:border-blue-400/50" />
+          <button type="submit" className="rounded bg-blue-700 px-2.5 py-1 text-xs font-semibold text-white hover:bg-blue-600">Save</button>
+          <button type="button" onClick={() => setMode(null)} className="rounded px-2 py-1 text-xs text-slate-500 hover:text-white">✕</button>
+        </form>
+      )}
+    </div>
+  )
+}
+
 function NetWorthTracker({ goals, finalSalary }) {
   const [debts, setDebts] = useLocalStorage(DEBT_KEY, [])
   const [dName, setDName] = useState('')
   const [dAmount, setDAmount] = useState('')
+  const [showPaid, setShowPaid] = useState(false)
 
   const totalAssets = goals.reduce((s, g) => s + (g.savedAmount || 0), 0)
-  const totalDebts  = debts.reduce((s, d) => s + (d.amount || 0), 0)
+  const totalDebts  = debts.reduce((s, d) => s + (d.remaining ?? d.amount || 0), 0)
   const netWorth    = totalAssets - totalDebts
   const positive    = netWorth >= 0
 
   const addDebt = (e) => {
     e.preventDefault()
     if (!dName.trim() || !dAmount) return
-    setDebts((prev) => [...prev, { id: Date.now().toString(36), name: dName, amount: Number(dAmount) }])
+    const amt = Number(dAmount)
+    setDebts((prev) => [...prev, { id: Date.now().toString(36), name: dName, amount: amt, remaining: amt }])
     setDName(''); setDAmount('')
   }
 
   const removeDebt = (id) => setDebts((prev) => prev.filter((d) => d.id !== id))
 
-  // Bar chart: assets vs debts
+  const payDebt = (id, payment) => {
+    setDebts((prev) => prev.map((d) => {
+      if (d.id !== id) return d
+      const remaining = Math.max((d.remaining ?? d.amount) - payment, 0)
+      return { ...d, remaining }
+    }))
+  }
+
+  const editDebt = (id, name, remaining) => {
+    setDebts((prev) => prev.map((d) => {
+      if (d.id !== id) return d
+      const newAmt = remaining > (d.amount || 0) ? remaining : d.amount
+      return { ...d, name, amount: newAmt, remaining }
+    }))
+  }
+
+  const activeDebts = debts.filter((d) => (d.remaining ?? d.amount) > 0)
+  const paidDebts   = debts.filter((d) => (d.remaining ?? d.amount) <= 0)
+
   const maxBar = Math.max(totalAssets, totalDebts, 1)
   const assetsPct = (totalAssets / maxBar) * 100
   const debtsPct  = (totalDebts  / maxBar) * 100
@@ -223,28 +341,28 @@ function NetWorthTracker({ goals, finalSalary }) {
 
       {/* Debts list */}
       <div>
-        <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-slate-500">Liabilities</p>
-        {debts.length === 0 ? (
+        <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+          Liabilities · {activeDebts.length} active
+        </p>
+        {activeDebts.length === 0 && paidDebts.length === 0 ? (
           <p className="text-[12px] text-slate-600">No debts added yet.</p>
         ) : (
           <div className="space-y-1.5">
-            {debts.map((d) => (
-              <div key={d.id} className="flex items-center justify-between rounded-lg bg-white/5 px-3 py-2">
-                <span className="text-sm text-slate-300">{d.name}</span>
-                <div className="flex items-center gap-3">
-                  <span className="text-sm font-semibold tabular-nums text-red-400">-PKR {fmtPKR(d.amount)}</span>
-                  <button onClick={() => removeDebt(d.id)}
-                    className="h-5 w-5 flex items-center justify-center rounded text-slate-600 hover:text-red-400">
-                    <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
-                      <path d="M18 6L6 18M6 6l12 12"/>
-                    </svg>
-                  </button>
-                </div>
-              </div>
+            {activeDebts.map((d) => (
+              <DebtRow key={d.id} debt={d} onPay={payDebt} onEdit={editDebt} onRemove={removeDebt} />
+            ))}
+            {paidDebts.length > 0 && (
+              <button onClick={() => setShowPaid((v) => !v)}
+                className="mt-1 text-[11px] text-slate-600 hover:text-slate-400">
+                {showPaid ? '▾ Hide paid' : `▸ Show ${paidDebts.length} paid off`}
+              </button>
+            )}
+            {showPaid && paidDebts.map((d) => (
+              <DebtRow key={d.id} debt={d} onPay={payDebt} onEdit={editDebt} onRemove={removeDebt} />
             ))}
           </div>
         )}
-        <form onSubmit={addDebt} className="mt-2 flex gap-2">
+        <form onSubmit={addDebt} className="mt-3 flex gap-2">
           <input type="text" placeholder="Liability name" value={dName}
             onChange={(e) => setDName(e.target.value)}
             className="flex-1 rounded-lg border border-white/10 bg-white/5 px-2.5 py-1.5 text-xs text-white placeholder-slate-500 outline-none focus:border-red-500/40" />

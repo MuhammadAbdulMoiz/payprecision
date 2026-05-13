@@ -14,7 +14,7 @@ function fmtMonth(m) {
 
 const RATE_OPTIONS = [0.05, 0.10, 0.15, 0.20, 0.25, 0.30]
 
-export default function GoalCard({ goal, onDelete, onUpdate, finalSalary }) {
+export default function GoalCard({ goal, onDelete, onUpdate, finalSalary, linkedLoans = [] }) {
   const imageSrc = goal.hasImage ? `/api/images/${goal.id}` : null
   const [showDeposits, setShowDeposits] = useState(false)
   const [depAmount, setDepAmount] = useState('')
@@ -68,7 +68,7 @@ export default function GoalCard({ goal, onDelete, onUpdate, finalSalary }) {
   }
 
   return (
-    <div className="group relative overflow-hidden rounded-2xl shadow-lg" style={{ minHeight: '260px' }}>
+    <div className="group relative overflow-hidden rounded-2xl shadow-lg h-full" style={{ minHeight: '260px' }}>
       {/* Background */}
       {imageSrc ? (
         <img src={imageSrc} alt={goal.name}
@@ -89,6 +89,13 @@ export default function GoalCard({ goal, onDelete, onUpdate, finalSalary }) {
 
       {/* Content */}
       <div className="relative flex h-full flex-col justify-end p-4" style={{ minHeight: '260px' }}>
+        {linkedLoans.length > 0 && (
+          <div className="mb-1">
+            <span className="rounded-full bg-red-500/30 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-red-400">
+              {linkedLoans.length} loan{linkedLoans.length !== 1 ? 's' : ''}
+            </span>
+          </div>
+        )}
         <h3 className="text-base font-bold text-white drop-shadow">{goal.name}</h3>
         {goal.description && (
           <p className="mt-0.5 text-xs text-white/60 line-clamp-1">{goal.description}</p>
