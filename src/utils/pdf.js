@@ -68,7 +68,11 @@ export function downloadInvoice(results, params, reimbursements = {}, annualBonu
   const hasReimbursements = appliedAI.length > 0 || laptops.length > 0
 
   const totalAIMonthly = appliedAI.reduce((s, i) => s + i.amount, 0)
-  const totalLaptopMonthly = laptops.reduce((s, i) => s + i.monthlyAmount, 0)
+  const appliedLaptops = laptops.filter(i => i.applied !== false)
+  const totalLaptopMonthly = appliedLaptops.reduce((s, i) => s + i.monthlyAmount, 0)
+  const totalReimbUSD = totalAIMonthly + totalLaptopMonthly
+  const dollarRateNum = params.dollarRate ? parseFloat(params.dollarRate) : 1
+  const totalReimbPKR = totalReimbUSD * dollarRateNum
 
   const reimbursementsSection = hasReimbursements ? `
     <h2>Reimbursements</h2>
@@ -78,16 +82,22 @@ export function downloadInvoice(results, params, reimbursements = {}, annualBonu
       ${appliedAI.map(i => `<tr class="credit-row"><td>${i.name}</td><td>+$${i.amount.toFixed(2)}</td></tr>`).join('')}
       ${appliedAI.length > 1 ? `<tr class="total-row"><td>Total AI Reimbursements</td><td>$${totalAIMonthly.toFixed(2)}/mo</td></tr>` : ''}
     </table>` : ''}
-    ${laptops.length > 0 ? `
+    ${appliedLaptops.length > 0 ? `
     <table>
       <tr><th>Laptop</th><th>Specs</th><th style="text-align:right">Monthly</th><th style="text-align:right">Progress</th></tr>
-      ${laptops.map(i => {
+      ${appliedLaptops.map(i => {
         const s = calcLaptopStats(i)
         const specs = [i.ram && `RAM: ${i.ram}`, i.ssd && `SSD: ${i.ssd}`, i.processor && `CPU: ${i.processor}`].filter(Boolean).join(' · ')
         return `<tr class="credit-row"><td>${i.name}</td><td style="font-size:11px;color:#64748b">${specs || '—'}</td><td>+$${i.monthlyAmount.toFixed(2)}</td><td style="font-size:11px">Mo ${s.monthsElapsed}/36</td></tr>`
       }).join('')}
-      ${laptops.length > 1 ? `<tr class="total-row"><td colspan="2">Total Laptop Reimbursements</td><td>$${totalLaptopMonthly.toFixed(2)}/mo</td><td></td></tr>` : ''}
+      ${appliedLaptops.length > 1 ? `<tr class="total-row"><td colspan="2">Total Laptop Reimbursements</td><td>$${totalLaptopMonthly.toFixed(2)}/mo</td><td></td></tr>` : ''}
     </table>` : ''}
+    ${totalReimbUSD > 0 ? `
+    <div class="note" style="border-left-color:#7c3aed;background:#f5f3ff">
+      <strong>Grand Total (incl. reimbursements):</strong>
+      PKR ${fmt(results.finalSalary + annualBonusPKR + totalReimbPKR)}
+      <span style="font-size:11px;color:#64748b"> = Salary PKR ${fmt(results.finalSalary + annualBonusPKR)} + Reimbursements $${totalReimbUSD.toFixed(2)} (PKR ${fmt(totalReimbPKR)})</span>
+    </div>` : ''}
   ` : ''
 
   const html = `<!DOCTYPE html><html><head><style>${STYLES}</style></head><body>

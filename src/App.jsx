@@ -168,6 +168,13 @@ export default function App() {
       ? (parseFloat(annualBonus) || 0) * parsedRate
       : (parseFloat(annualBonus) || 0)
 
+  const reimbursementUSD = [
+    ...aiItems.filter(i => i.applied).map(i => i.amount),
+    ...laptopItems.filter(i => i.applied).map(i => i.monthlyAmount),
+  ].reduce((s, v) => s + v, 0)
+  const reimbursementPKR = reimbursementUSD * parsedRate
+  const totalEarnings = results.finalSalary + reimbursementPKR + annualBonusPKR
+
   const handleDownloadInvoice = useCallback(() => {
     if (!isValid) return
     downloadInvoice(
@@ -206,7 +213,7 @@ export default function App() {
         {activeTab === 'calculator' && (
           <main className="space-y-4 px-6 pb-8">
             <SummaryCard
-              finalSalary={results.finalSalary}
+              finalSalary={totalEarnings}
               isValid={isValid}
               globalCurrency={globalCurrency}
               dollarRate={parsedDollarRate}
@@ -280,6 +287,9 @@ export default function App() {
                   dollarRate={parsedDollarRate}
                   aiItems={aiItems}
                   laptopItems={laptopItems}
+                  annualBonusPKR={annualBonusPKR}
+                  annualBonusMode={annualBonusMode}
+                  annualBonusValue={annualBonus}
                 />
 
                 <ResultsPanel
@@ -329,6 +339,12 @@ export default function App() {
               currency={globalCurrency}
               dollarRate={parsedDollarRate}
               employeeType={employeeType}
+              reimbursementPKR={reimbursementPKR}
+              aiItems={aiItems}
+              laptopItems={laptopItems}
+              annualBonusPKR={annualBonusPKR}
+              annualBonusMode={annualBonusMode}
+              annualBonusValue={annualBonus}
             />
 
             <div className="flex items-center gap-2 rounded-xl bg-blue-500/10 p-3">

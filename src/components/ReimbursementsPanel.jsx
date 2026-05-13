@@ -95,29 +95,28 @@ function ImageUploadTrigger({ id, hasImage, onUpload, children }) {
   )
 }
 
-// ── AI provider card — GoalCard style ─────────────────────────────────────────
+// ── AI provider card — GoalCard style, full-width ────────────────────────────
 
 function AICard({ item, onUpdate, onDelete, onUploadLogo }) {
   const logoUrl = item.hasLogo ? `/api/images/${item.id}?v=${item.updatedAt || ''}` : null
 
   return (
-    <div className="group relative overflow-hidden rounded-2xl" style={{ minHeight: '130px' }}>
-      {/* Background */}
+    <div className="group relative overflow-hidden rounded-2xl" style={{ minHeight: '140px' }}>
+      {/* Blurred background from logo */}
       {logoUrl ? (
-        <>
-          <img src={logoUrl} alt=""
-            className="absolute inset-0 h-full w-full object-cover"
-            style={{ filter: 'brightness(0.35) blur(18px)', transform: 'scale(1.15)' }} />
-        </>
+        <img src={logoUrl} alt=""
+          className="absolute inset-0 h-full w-full object-cover"
+          style={{ filter: 'brightness(0.3) blur(20px)', transform: 'scale(1.2)' }} />
       ) : (
         <div className="absolute inset-0 bg-gradient-to-br from-violet-900/80 to-slate-800" />
       )}
-      <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/40 to-transparent" />
+      <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent" />
 
-      {/* Delete — top right, appears on hover */}
+      {/* Delete — top RIGHT, hover only — well away from toggle */}
       <button
         onClick={() => onDelete(item.id)}
-        className="absolute right-2.5 top-2.5 z-10 flex h-6 w-6 items-center justify-center rounded-full bg-black/50 text-white opacity-0 transition-opacity hover:bg-red-600 group-hover:opacity-100"
+        className="absolute right-2.5 top-2.5 z-10 flex h-6 w-6 items-center justify-center rounded-full bg-black/60 text-white opacity-0 transition-opacity hover:bg-red-600 group-hover:opacity-100"
+        title="Delete"
       >
         <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
           <path d="M18 6L6 18M6 6l12 12" />
@@ -125,30 +124,21 @@ function AICard({ item, onUpdate, onDelete, onUploadLogo }) {
       </button>
 
       {/* Content */}
-      <div className="relative flex h-full flex-col justify-between p-3.5" style={{ minHeight: '130px' }}>
-        {/* Top row: logo + apply toggle */}
-        <div className="flex items-start justify-between">
-          <ImageUploadTrigger id={item.id} hasImage={item.hasLogo} onUpload={data => onUploadLogo(item.id, data)}>
-            <div className="flex h-10 w-10 items-center justify-center rounded-full border-2 border-white/20 bg-black/30 overflow-hidden hover:border-white/50 transition-colors">
-              {logoUrl
-                ? <img src={logoUrl} alt="logo" className="h-full w-full object-cover" />
-                : <svg className="h-4 w-4 text-white/40" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5">
-                    <path d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
-                  </svg>
-              }
-            </div>
-          </ImageUploadTrigger>
-
-          <div className="flex items-center gap-1.5">
-            <span className={`text-[10px] font-semibold ${item.applied ? 'text-emerald-300' : 'text-white/40'}`}>
-              {item.applied ? 'Applied' : 'Off'}
-            </span>
-            <Toggle checked={item.applied} onChange={v => onUpdate(item.id, { applied: v })} />
+      <div className="relative flex h-full items-end gap-4 p-4" style={{ minHeight: '140px' }}>
+        {/* Logo circle — left side */}
+        <ImageUploadTrigger id={item.id} hasImage={item.hasLogo} onUpload={data => onUploadLogo(item.id, data)}>
+          <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full border-2 border-white/25 bg-black/40 overflow-hidden hover:border-white/50 transition-colors">
+            {logoUrl
+              ? <img src={logoUrl} alt="logo" className="h-full w-full object-cover" />
+              : <svg className="h-5 w-5 text-white/30" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5">
+                  <path d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
+                </svg>
+            }
           </div>
-        </div>
+        </ImageUploadTrigger>
 
-        {/* Bottom: name + amount */}
-        <div>
+        {/* Name + amount — grows */}
+        <div className="flex-1 min-w-0">
           <InlineEdit
             value={item.name}
             onChange={name => onUpdate(item.id, { name })}
@@ -160,12 +150,19 @@ function AICard({ item, onUpdate, onDelete, onUploadLogo }) {
             <InlineEdit
               value={String(item.amount)}
               onChange={amount => onUpdate(item.id, { amount })}
-              placeholder="10"
-              type="number" step="0.01"
+              placeholder="10" type="number" step="0.01"
               className="w-14 text-white/80"
             />
             <span>/mo</span>
           </div>
+        </div>
+
+        {/* Apply toggle — bottom RIGHT, far from delete */}
+        <div className="flex flex-col items-center gap-1 shrink-0">
+          <Toggle checked={item.applied} onChange={v => onUpdate(item.id, { applied: v })} />
+          <span className={`text-[9px] font-semibold ${item.applied ? 'text-emerald-300' : 'text-white/35'}`}>
+            {item.applied ? 'Applied' : 'Off'}
+          </span>
         </div>
       </div>
     </div>
@@ -369,7 +366,7 @@ export default function ReimbursementsPanel({
               <p className="text-xs text-slate-500 italic">No AI subscriptions yet.</p>
             )}
 
-            <div className="grid grid-cols-2 gap-2">
+            <div className="space-y-2">
               {aiItems.map(item => (
                 <AICard
                   key={item.id}

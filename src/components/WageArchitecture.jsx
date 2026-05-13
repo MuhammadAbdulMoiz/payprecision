@@ -4,6 +4,7 @@ export default function WageArchitecture({
   dailyWage, overtimeRate, isValid,
   globalCurrency = 'PKR', dollarRate = 1,
   aiItems = [], laptopItems = [],
+  annualBonusPKR = 0, annualBonusMode = 'fixed', annualBonusValue = '',
 }) {
   const [currency, setCurrency] = useState(globalCurrency)
 
@@ -83,48 +84,64 @@ export default function WageArchitecture({
           </div>
         </div>
 
-        {hasReimbursements && (
-          <div className="rounded-xl border border-violet-500/20 bg-violet-500/5 p-3">
-            <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-violet-400">
-              Reimbursements / mo
+        {annualBonusPKR > 0 && (
+          <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-4">
+            <p className="mb-1 text-[10px] font-semibold uppercase tracking-widest text-amber-400">
+              Annual Bonus{annualBonusMode === 'percent' ? ` (${annualBonusValue}%)` : ''}
             </p>
-            <div className="space-y-2">
-              {appliedAI.map(item => (
-                <div key={item.id} className="flex items-center gap-2">
-                  {item.hasLogo
-                    ? <img src={`/api/images/${item.id}`} alt="" className="h-5 w-5 rounded-full object-cover shrink-0" />
-                    : <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-violet-500/20">
-                        <svg className="h-3 w-3 text-violet-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                          <path d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-                        </svg>
-                      </div>
-                  }
-                  <span className="flex-1 text-xs text-slate-300 truncate">{item.name}</span>
-                  <span className="text-xs font-semibold text-violet-300 tabular-nums">
-                    +{prefix} {fmtReimb(item.amount)}
-                  </span>
-                </div>
-              ))}
-
-              {appliedLaptops.map(item => (
-                <div key={item.id} className="flex items-center gap-2">
-                  {item.hasImage
-                    ? <img src={`/api/images/${item.id}`} alt="" className="h-5 w-5 rounded object-cover shrink-0" />
-                    : <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded bg-emerald-500/20">
-                        <svg className="h-3 w-3 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                          <path d="M9 3H5a2 2 0 00-2 2v4m6-6h10a2 2 0 012 2v4M9 3v18m0 0h10a2 2 0 002-2V9M9 21H5a2 2 0 01-2-2V9m0 0h18" />
-                        </svg>
-                      </div>
-                  }
-                  <span className="flex-1 text-xs text-slate-300 truncate">{item.name}</span>
-                  <span className="text-xs font-semibold text-emerald-300 tabular-nums">
-                    +{prefix} {fmtReimb(item.monthlyAmount)}
-                  </span>
-                </div>
-              ))}
+            <div className="flex items-baseline justify-between">
+              <p className="text-2xl font-extrabold tabular-nums text-slate-100 light:text-slate-800">
+                {prefix} {fmtReimb(annualBonusPKR)}
+              </p>
+              <div className="text-right">
+                <p className="text-[10px] font-medium uppercase text-slate-500">One-time</p>
+                <p className="text-xs text-amber-400">{currency === 'USD' ? '$ total' : 'PKR total'}</p>
+              </div>
             </div>
           </div>
         )}
+
+        {appliedAI.map(item => (
+          <div key={item.id} className="rounded-xl border border-violet-500/20 bg-violet-500/5 p-4">
+            <div className="flex items-center gap-2 mb-1">
+              {item.hasLogo
+                ? <img src={`/api/images/${item.id}`} alt="" className="h-4 w-4 rounded-full object-cover shrink-0" />
+                : <div className="h-4 w-4 shrink-0 rounded-full bg-violet-500/30" />
+              }
+              <p className="text-[10px] font-semibold uppercase tracking-widest text-violet-400 truncate">{item.name}</p>
+            </div>
+            <div className="flex items-baseline justify-between">
+              <p className="text-2xl font-extrabold tabular-nums text-slate-100 light:text-slate-800">
+                {prefix} {fmtReimb(item.amount)}
+              </p>
+              <div className="text-right">
+                <p className="text-[10px] font-medium uppercase text-slate-500">AI Reimb.</p>
+                <p className="text-xs text-violet-400">{currency === 'USD' ? '$ / mo' : 'PKR / mo'}</p>
+              </div>
+            </div>
+          </div>
+        ))}
+
+        {appliedLaptops.map(item => (
+          <div key={item.id} className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-4">
+            <div className="flex items-center gap-2 mb-1">
+              {item.hasImage
+                ? <img src={`/api/images/${item.id}`} alt="" className="h-4 w-4 rounded object-cover shrink-0" />
+                : <div className="h-4 w-4 shrink-0 rounded bg-emerald-500/30" />
+              }
+              <p className="text-[10px] font-semibold uppercase tracking-widest text-emerald-400 truncate">{item.name}</p>
+            </div>
+            <div className="flex items-baseline justify-between">
+              <p className="text-2xl font-extrabold tabular-nums text-slate-100 light:text-slate-800">
+                {prefix} {fmtReimb(item.monthlyAmount)}
+              </p>
+              <div className="text-right">
+                <p className="text-[10px] font-medium uppercase text-slate-500">Laptop Reimb.</p>
+                <p className="text-xs text-emerald-400">{currency === 'USD' ? '$ / mo' : 'PKR / mo'}</p>
+              </div>
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   )
