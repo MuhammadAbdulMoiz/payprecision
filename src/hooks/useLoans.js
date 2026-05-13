@@ -59,7 +59,21 @@ export function useLoans() {
     })
   }, [updateLoan])
 
-  return { loans, addLoan, updateLoan, deleteLoan, uploadLoanImage, refetch: fetchLoans }
+  const payLoan = useCallback(async (id, amount, note = '') => {
+    const paymentDate = new Date().toISOString().slice(0, 10)
+    const res = await fetch(`/api/loans/${id}/payments`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ amount, paymentDate, note }),
+    })
+    if (res.ok) {
+      await fetchLoans()
+      return true
+    }
+    return false
+  }, [fetchLoans])
+
+  return { loans, addLoan, updateLoan, deleteLoan, uploadLoanImage, payLoan, refetch: fetchLoans }
 }
 
 export function useLoanPayments(loanId) {

@@ -3,6 +3,7 @@ const { randomUUID } = require('crypto')
 const { getDb } = require('../db')
 
 function toClient(row) {
+  const totalPaid = row.total_paid ?? 0
   return {
     id: row.id,
     lenderName: row.lender_name,
@@ -16,6 +17,8 @@ function toClient(row) {
     notes: row.notes,
     hasImage: row.has_image === 1,
     createdAt: row.created_at,
+    totalPaid,
+    remaining: Math.max(row.amount - totalPaid, 0),
   }
 }
 
@@ -36,7 +39,13 @@ module.exports = function loansRouter(dbPath) {
 
   // ── Loans ──────────────────────────────────────────────────────────────────
   router.get('/', (_req, res) => {
-    const rows = db().prepare('SELECT * FROM loans ORDER BY loan_date DESC').all()
+    const rows = db().prepare(`
+      SELECT l.*, COALESCE(SUM(p.amount), 0) as total_paid
+      FROM loans l
+      LEFT JOIN loan_payments p ON p.loan_id = l.id
+      GROUP BY l.id
+      ORDER BY l.loan_date DESC
+    `).all()
     res.json(rows.map(toClient))
   })
 
@@ -78,7 +87,11 @@ module.exports = function loansRouter(dbPath) {
       updated.purpose, updated.goal_id, updated.monthly_installment, updated.status,
       updated.notes, updated.has_image, id)
 
-    res.json(toClient(db().prepare('SELECT * FROM loans WHERE id = ?').get(id)))
+    res.json(toClient(db().prepare(`
+      SELECT l.*, COALESCE(SUM(p.amount), 0) as total_paid
+      FROM loans l LEFT JOIN loan_payments p ON p.loan_id = l.id
+      WHERE l.id = ? GROUP BY l.id
+    `).get(id)))
   })
 
   router.delete('/:id', (req, res) => {

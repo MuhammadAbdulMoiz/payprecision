@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { useExpenses } from '../hooks/useExpenses'
 import { useGoals } from '../hooks/useGoals'
 import { useLocalStorage } from '../hooks/useLocalStorage'
+import { useLoans, useLoanPayments } from '../hooks/useLoans'
 
 // ─── helpers ────────────────────────────────────────────────────────────────
 
@@ -153,6 +154,76 @@ function SalaryGrowthChart({ entries }) {
   )
 }
 
+// ─── Loan debt row (synced from DB) ──────────────────────────────────────────
+
+function LoanDebtRow({ loan, onPay }) {
+  const [mode, setMode] = useState(false)
+  const [payAmt, setPayAmt] = useState('')
+
+  const remaining = loan.remaining ?? 0
+  const paid      = loan.totalPaid ?? 0
+  const progress  = loan.amount > 0 ? Math.min((paid / loan.amount) * 100, 100) : 0
+  const isPaid    = remaining <= 0
+
+  const handlePay = async (e) => {
+    e.preventDefault()
+    const p = Math.min(Number(payAmt), remaining)
+    if (p > 0) {
+      await onPay(loan.id, p)
+      setPayAmt('')
+      setMode(false)
+    }
+  }
+
+  return (
+    <div className={`rounded-lg px-3 py-2.5 ${isPaid ? 'bg-emerald-500/10' : 'bg-white/5'}`}>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2 min-w-0">
+          {isPaid
+            ? <span className="shrink-0 rounded-full bg-emerald-500/20 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-emerald-400">Paid</span>
+            : <span className="shrink-0 rounded-full bg-orange-500/20 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-orange-400">Loan</span>
+          }
+          <span className={`text-sm truncate ${isPaid ? 'text-slate-500 line-through' : 'text-slate-300'}`}>{loan.lenderName}</span>
+          {loan.purpose && <span className="text-[10px] text-slate-600 truncate hidden sm:block">· {loan.purpose}</span>}
+        </div>
+        <div className="flex items-center gap-2 shrink-0 ml-2">
+          <span className={`text-sm font-semibold tabular-nums ${isPaid ? 'text-slate-600' : 'text-red-400'}`}>
+            {isPaid ? `${loan.currency} 0` : `-${loan.currency} ${fmtPKR(remaining)}`}
+          </span>
+          {!isPaid && (
+            <button onClick={() => setMode((v) => !v)}
+              className="rounded bg-emerald-700/60 px-2 py-0.5 text-[10px] font-semibold text-emerald-300 hover:bg-emerald-600/60">
+              Pay
+            </button>
+          )}
+        </div>
+      </div>
+
+      {loan.amount > 0 && paid > 0 && (
+        <div className="mt-1.5">
+          <div className="h-1 overflow-hidden rounded-full bg-white/10">
+            <div className="h-full rounded-full bg-emerald-500/60 transition-all duration-500" style={{ width: `${progress}%` }} />
+          </div>
+          <div className="mt-0.5 flex justify-between text-[9px] text-slate-600">
+            <span>Paid {loan.currency} {fmtPKR(paid)}</span>
+            <span>{Math.round(progress)}% done</span>
+          </div>
+        </div>
+      )}
+
+      {mode && (
+        <form onSubmit={handlePay} className="mt-2 flex gap-1.5">
+          <input type="number" min="1" max={remaining} placeholder={`Max ${fmtPKR(remaining)}`}
+            value={payAmt} onChange={(e) => setPayAmt(e.target.value)} autoFocus required
+            className="flex-1 rounded border border-emerald-500/30 bg-emerald-900/20 px-2 py-1 text-xs text-white outline-none focus:border-emerald-400/60" />
+          <button type="submit" className="rounded bg-emerald-700 px-2.5 py-1 text-xs font-semibold text-white hover:bg-emerald-600">Confirm</button>
+          <button type="button" onClick={() => setMode(false)} className="rounded px-2 py-1 text-xs text-slate-500 hover:text-white">✕</button>
+        </form>
+      )}
+    </div>
+  )
+}
+
 // ─── Net worth tracker ────────────────────────────────────────────────────────
 
 const DEBT_KEY = 'pp-debts'
@@ -255,14 +326,16 @@ function DebtRow({ debt, onPay, onEdit, onRemove }) {
   )
 }
 
-function NetWorthTracker({ goals, finalSalary }) {
+function NetWorthTracker({ goals, finalSalary, loans = [], onPayLoan }) {
   const [debts, setDebts] = useLocalStorage(DEBT_KEY, [])
   const [dName, setDName] = useState('')
   const [dAmount, setDAmount] = useState('')
   const [showPaid, setShowPaid] = useState(false)
 
   const totalAssets = goals.reduce((s, g) => s + (g.savedAmount || 0), 0)
-  const totalDebts  = debts.reduce((s, d) => s + ((d.remaining ?? d.amount) || 0), 0)
+  const manualDebtTotal = debts.reduce((s, d) => s + ((d.remaining ?? d.amount) || 0), 0)
+  const loanDebtTotal   = loans.reduce((s, l) => s + (l.remaining || 0), 0)
+  const totalDebts  = manualDebtTotal + loanDebtTotal
   const netWorth    = totalAssets - totalDebts
   const positive    = netWorth >= 0
 
@@ -342,26 +415,44 @@ function NetWorthTracker({ goals, finalSalary }) {
       {/* Debts list */}
       <div>
         <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
-          Liabilities · {activeDebts.length} active
+          Liabilities · {activeDebts.length + loans.filter(l => l.remaining > 0).length} active
         </p>
-        {activeDebts.length === 0 && paidDebts.length === 0 ? (
-          <p className="text-[12px] text-slate-600">No debts added yet.</p>
-        ) : (
-          <div className="space-y-1.5">
-            {activeDebts.map((d) => (
-              <DebtRow key={d.id} debt={d} onPay={payDebt} onEdit={editDebt} onRemove={removeDebt} />
-            ))}
-            {paidDebts.length > 0 && (
-              <button onClick={() => setShowPaid((v) => !v)}
-                className="mt-1 text-[11px] text-slate-600 hover:text-slate-400">
-                {showPaid ? '▾ Hide paid' : `▸ Show ${paidDebts.length} paid off`}
-              </button>
-            )}
-            {showPaid && paidDebts.map((d) => (
-              <DebtRow key={d.id} debt={d} onPay={payDebt} onEdit={editDebt} onRemove={removeDebt} />
+
+        {/* DB loans — synced from Loan Tracker */}
+        {loans.length > 0 && (
+          <div className="mb-2 space-y-1.5">
+            <p className="text-[9px] font-semibold uppercase tracking-widest text-slate-600 mb-1">From Loan Tracker</p>
+            {loans.map((loan) => (
+              <LoanDebtRow key={loan.id} loan={loan} onPay={onPayLoan} />
             ))}
           </div>
         )}
+
+        {/* Manual localStorage debts */}
+        {(activeDebts.length > 0 || paidDebts.length > 0) && (
+          <>
+            {loans.length > 0 && <p className="text-[9px] font-semibold uppercase tracking-widest text-slate-600 mb-1 mt-2">Manual Liabilities</p>}
+            <div className="space-y-1.5">
+              {activeDebts.map((d) => (
+                <DebtRow key={d.id} debt={d} onPay={payDebt} onEdit={editDebt} onRemove={removeDebt} />
+              ))}
+              {paidDebts.length > 0 && (
+                <button onClick={() => setShowPaid((v) => !v)}
+                  className="mt-1 text-[11px] text-slate-600 hover:text-slate-400">
+                  {showPaid ? '▾ Hide paid' : `▸ Show ${paidDebts.length} paid off`}
+                </button>
+              )}
+              {showPaid && paidDebts.map((d) => (
+                <DebtRow key={d.id} debt={d} onPay={payDebt} onEdit={editDebt} onRemove={removeDebt} />
+              ))}
+            </div>
+          </>
+        )}
+
+        {loans.length === 0 && activeDebts.length === 0 && paidDebts.length === 0 && (
+          <p className="text-[12px] text-slate-600 mb-2">No debts added yet. Add a loan in the Goals tab or add a manual liability below.</p>
+        )}
+
         <form onSubmit={addDebt} className="mt-3 flex gap-2">
           <input type="text" placeholder="Liability name" value={dName}
             onChange={(e) => setDName(e.target.value)}
@@ -387,6 +478,7 @@ const CAT_COLORS   = ['#3b82f6','#10b981','#f59e0b','#7c3aed','#0ea5e9','#ec4899
 export default function InsightsPage({ entries, finalSalary }) {
   const { expenses } = useExpenses()
   const { goals }    = useGoals()
+  const { loans, payLoan } = useLoans()
   const [months6]    = useState(() => lastNMonths(6))
   const [activeCats, setActiveCats] = useState(() => new Set(EXPENSE_CATS.slice(0, 5)))
 
@@ -542,7 +634,7 @@ export default function InsightsPage({ entries, finalSalary }) {
             <p className="text-[11px] text-slate-500">Goal savings minus your debts/liabilities</p>
           </div>
         </div>
-        <NetWorthTracker goals={goals} finalSalary={finalSalary} />
+        <NetWorthTracker goals={goals} finalSalary={finalSalary} loans={loans} onPayLoan={payLoan} />
       </div>
     </div>
   )
