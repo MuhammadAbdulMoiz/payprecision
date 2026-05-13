@@ -262,7 +262,7 @@ function NetWorthTracker({ goals, finalSalary }) {
   const [showPaid, setShowPaid] = useState(false)
 
   const totalAssets = goals.reduce((s, g) => s + (g.savedAmount || 0), 0)
-  const totalDebts  = debts.reduce((s, d) => s + (d.remaining ?? d.amount || 0), 0)
+  const totalDebts  = debts.reduce((s, d) => s + ((d.remaining ?? d.amount) || 0), 0)
   const netWorth    = totalAssets - totalDebts
   const positive    = netWorth >= 0
 

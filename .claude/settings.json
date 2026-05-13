@@ -11,7 +11,10 @@
       "Bash(npm run *)",
       "Read(//c/abdul.moiz/payprecision/node_modules/**)",
       "PowerShell(node --version)",
-      "PowerShell(npm --version 2>&1)"
+      "PowerShell(npm --version 2>&1)",
+      "PowerShell(podman stop payprecision)",
+      "PowerShell(podman rm payprecision)",
+      "PowerShell(podman run -d --name payprecision -p 3000:3000 -v payprecision-db:/db localhost/payprecision:latest)"
     ]
   }
 }
