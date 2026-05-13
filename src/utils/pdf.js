@@ -58,10 +58,10 @@ export function downloadInvoice(results, params, reimbursements = {}, annualBonu
   const dateStr = date.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
   const isFullTime = params.employeeType === 'fulltime'
 
-  const annualBonusAmt = Number(annualBonusInfo.amount) || 0
-  const annualBonusPKR = annualBonusInfo.currency === 'USD'
-    ? annualBonusAmt * (annualBonusInfo.dollarRate || 1)
-    : annualBonusAmt
+  const annualBonusPKR = Number(annualBonusInfo.amountPKR) || 0
+  const annualBonusLabel = annualBonusInfo.mode === 'percent'
+    ? `Annual Bonus (${annualBonusInfo.percentValue}% of annual salary)`
+    : `Annual Bonus${annualBonusInfo.currency === 'USD' ? ` ($${Number(annualBonusInfo.percentValue || 0).toFixed(2)} USD)` : ''}`
 
   const appliedAI = (reimbursements.aiItems || []).filter(i => i.applied)
   const laptops = reimbursements.laptopItems || []
@@ -123,8 +123,8 @@ export function downloadInvoice(results, params, reimbursements = {}, annualBonu
       ${results.attendanceBonus > 0 ? `<tr class="credit-row"><td>Attendance Bonus <span class="badge badge-green">BONUS</span></td><td>+${fmt(results.attendanceBonus)}</td></tr>` : ''}
       ${results.leaveDeduction > 0 ? `<tr class="debit-row"><td>Leave Deduction <span style="font-size:11px">(${results.remainingLeave} day${results.remainingLeave !== 1 ? 's' : ''} at daily rate)</span></td><td>−${fmt(results.leaveDeduction)}</td></tr>` : ''}
       ${isFullTime && results.providentFund > 0 ? `<tr class="debit-row"><td>Provident Fund <span style="font-size:11px">(5% of base salary)</span></td><td>−${fmt(results.providentFund)}</td></tr>` : ''}
-      ${annualBonusAmt > 0 ? `<tr class="credit-row"><td>Annual Bonus <span class="badge badge-amber" style="background:#fef3c7;color:#d97706">BONUS</span>${annualBonusInfo.currency === 'USD' ? ` <span style="font-size:11px;color:#94a3b8">($${fmt(annualBonusAmt)} USD)</span>` : ''}</td><td>+${fmt(annualBonusPKR)}</td></tr>` : ''}
-      <tr class="total-row"><td>Net Salary${annualBonusAmt > 0 ? ' (incl. annual bonus)' : ''}</td><td>PKR ${fmt(results.finalSalary + (annualBonusAmt > 0 ? annualBonusPKR : 0))}</td></tr>
+      ${annualBonusPKR > 0 ? `<tr class="credit-row"><td>${annualBonusLabel} <span class="badge badge-amber" style="background:#fef3c7;color:#d97706">BONUS</span></td><td>+${fmt(annualBonusPKR)}</td></tr>` : ''}
+      <tr class="total-row"><td>Net Salary${annualBonusPKR > 0 ? ' (incl. annual bonus)' : ''}</td><td>PKR ${fmt(results.finalSalary + annualBonusPKR)}</td></tr>
     </table>
 
     ${reimbursementsSection}

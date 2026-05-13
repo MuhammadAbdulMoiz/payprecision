@@ -88,6 +88,7 @@ export default function App() {
   const [enabledPages, setEnabledPages] = useLocalStorage('pp-pages', { history: true, goals: true, insights: false })
   const [annualBonus, setAnnualBonus] = useLocalStorage('pp-annual-bonus', '')
   const [annualBonusCurrency, setAnnualBonusCurrency] = useLocalStorage('pp-annual-bonus-cur', 'PKR')
+  const [annualBonusMode, setAnnualBonusMode] = useLocalStorage('pp-annual-bonus-mode', 'fixed')
   const attendanceBonuses = Array.isArray(rawAttendance) ? rawAttendance : []
 
   const { entries, addEntry, clearHistory, deleteEntry } = useHistory()
@@ -161,15 +162,21 @@ export default function App() {
     setAttendanceBonuses([])
   }, [setEmployeeType, setIncome, setDollarRate, setFixedWorkingDays, setExtraDays, setLeaveDays, setWorkingDayMode, setPublicHolidays, setAttendanceBonuses])
 
+  const annualBonusPKR = annualBonusMode === 'percent'
+    ? (parseFloat(annualBonus) / 100) * results.monthlyPKR * 12
+    : annualBonusCurrency === 'USD'
+      ? (parseFloat(annualBonus) || 0) * parsedRate
+      : (parseFloat(annualBonus) || 0)
+
   const handleDownloadInvoice = useCallback(() => {
     if (!isValid) return
     downloadInvoice(
       results,
       { employeeType, income, dollarRate, workingDays, extraDays, leaveDays },
       { aiItems, laptopItems },
-      { amount: annualBonus, currency: annualBonusCurrency, dollarRate: parsedRate },
+      { amountPKR: annualBonusPKR, mode: annualBonusMode, percentValue: annualBonus, currency: annualBonusCurrency },
     )
-  }, [isValid, results, employeeType, income, dollarRate, workingDays, extraDays, leaveDays, aiItems, laptopItems, annualBonus, annualBonusCurrency, parsedRate])
+  }, [isValid, results, employeeType, income, dollarRate, workingDays, extraDays, leaveDays, aiItems, laptopItems, annualBonusPKR, annualBonusMode, annualBonus, annualBonusCurrency])
 
   const handleDownloadReport = useCallback(() => {
     downloadAnnualReport(entries)
@@ -244,16 +251,35 @@ export default function App() {
                   onAnnualBonusChange={setAnnualBonus}
                   annualBonusCurrency={annualBonusCurrency}
                   onAnnualBonusCurrencyChange={setAnnualBonusCurrency}
+                  annualBonusMode={annualBonusMode}
+                  onAnnualBonusModeChange={setAnnualBonusMode}
+                  baseSalaryPKR={results.monthlyPKR}
+                  dollarRate={parsedDollarRate}
                 />
               </div>
 
               <div className="space-y-4">
+                <ReimbursementsPanel
+                  aiItems={aiItems}
+                  laptopItems={laptopItems}
+                  onAddAI={addAI}
+                  onUpdateAI={updateAI}
+                  onDeleteAI={deleteAI}
+                  onUploadAILogo={uploadAILogo}
+                  onAddLaptop={addLaptop}
+                  onUpdateLaptop={updateLaptop}
+                  onDeleteLaptop={deleteLaptop}
+                  onUploadLaptopImage={uploadLaptopImage}
+                />
+
                 <WageArchitecture
                   dailyWage={results.dailyWage}
                   overtimeRate={results.overtimeRate}
                   isValid={isValid}
                   globalCurrency={globalCurrency}
                   dollarRate={parsedDollarRate}
+                  aiItems={aiItems}
+                  laptopItems={laptopItems}
                 />
 
                 <ResultsPanel
@@ -294,19 +320,6 @@ export default function App() {
                   </svg>
                   Download Invoice
                 </button>
-
-                <ReimbursementsPanel
-                  aiItems={aiItems}
-                  laptopItems={laptopItems}
-                  onAddAI={addAI}
-                  onUpdateAI={updateAI}
-                  onDeleteAI={deleteAI}
-                  onUploadAILogo={uploadAILogo}
-                  onAddLaptop={addLaptop}
-                  onUpdateLaptop={updateLaptop}
-                  onDeleteLaptop={deleteLaptop}
-                  onUploadLaptopImage={uploadLaptopImage}
-                />
               </div>
             </div>
 

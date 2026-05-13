@@ -25,6 +25,7 @@ function toClientLaptop(row) {
     monthlyAmount: row.monthly_amount,
     startDate: row.start_date || '',
     hasImage: row.has_image === 1,
+    applied: row.applied !== 0,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   }
@@ -88,9 +89,9 @@ module.exports = function reimbursementsRouter(dbPath) {
     const db = getDb(dbPath)
     const monthly = monthlyAmount ?? (totalAmount ? totalAmount / 36 : 0)
     db.prepare(`
-      INSERT INTO laptop_reimbursements (id, name, ram, ssd, gpu, processor, total_amount, monthly_amount, start_date, has_image)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(id, name, ram || '', ssd || '', gpu || '', processor || '', totalAmount || 0, monthly, startDate || '', hasImage ? 1 : 0)
+      INSERT INTO laptop_reimbursements (id, name, ram, ssd, gpu, processor, total_amount, monthly_amount, start_date, has_image, applied)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(id, name, ram || '', ssd || '', gpu || '', processor || '', totalAmount || 0, monthly, startDate || '', hasImage ? 1 : 0, 1)
     const row = db.prepare('SELECT * FROM laptop_reimbursements WHERE id = ?').get(id)
     res.status(201).json(toClientLaptop(row))
   })
@@ -108,13 +109,14 @@ module.exports = function reimbursementsRouter(dbPath) {
     const monthlyAmount = req.body.monthlyAmount !== undefined ? req.body.monthlyAmount : (totalAmount / 36)
     const startDate = req.body.startDate !== undefined ? req.body.startDate : row.start_date
     const hasImage = req.body.hasImage !== undefined ? (req.body.hasImage ? 1 : 0) : row.has_image
+    const applied = req.body.applied !== undefined ? (req.body.applied ? 1 : 0) : (row.applied !== 0 ? 1 : 0)
     db.prepare(`
       UPDATE laptop_reimbursements
       SET name = ?, ram = ?, ssd = ?, gpu = ?, processor = ?,
-          total_amount = ?, monthly_amount = ?, start_date = ?, has_image = ?,
+          total_amount = ?, monthly_amount = ?, start_date = ?, has_image = ?, applied = ?,
           updated_at = datetime('now')
       WHERE id = ?
-    `).run(name, ram, ssd, gpu, processor, totalAmount, monthlyAmount, startDate, hasImage, req.params.id)
+    `).run(name, ram, ssd, gpu, processor, totalAmount, monthlyAmount, startDate, hasImage, applied, req.params.id)
     const updated = db.prepare('SELECT * FROM laptop_reimbursements WHERE id = ?').get(req.params.id)
     res.json(toClientLaptop(updated))
   })

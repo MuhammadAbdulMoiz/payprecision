@@ -16,6 +16,8 @@ export default function VariablesAdjustments({
   errors,
   annualBonus, onAnnualBonusChange,
   annualBonusCurrency, onAnnualBonusCurrencyChange,
+  annualBonusMode, onAnnualBonusModeChange,
+  baseSalaryPKR,
 }) {
   const toggleBonus = (key) => {
     onAttendanceBonusesChange((prev) =>
@@ -185,54 +187,87 @@ export default function VariablesAdjustments({
 
         {/* Annual Bonus */}
         <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-4">
-          <div className="mb-3 flex items-center gap-2">
-            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-amber-500/20">
-              <svg className="h-4 w-4 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                <path d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
+          <div className="mb-3 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-amber-500/20">
+                <svg className="h-4 w-4 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                  <path d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-slate-200 light:text-slate-700">Annual Bonus</p>
+                <p className="text-[11px] text-slate-500">One-time bonus — shown on invoice only</p>
+              </div>
             </div>
-            <div>
-              <p className="text-sm font-medium text-slate-200 light:text-slate-700">Annual Bonus</p>
-              <p className="text-[11px] text-slate-500">One-time bonus — shown on invoice only</p>
+            {/* Mode toggle: Fixed | % */}
+            <div className="flex rounded-lg overflow-hidden border border-amber-500/30">
+              {['fixed', 'percent'].map((mode) => (
+                <button
+                  key={mode}
+                  onClick={() => { onAnnualBonusModeChange(mode); onAnnualBonusChange('') }}
+                  className={`px-2.5 py-1 text-[10px] font-bold uppercase transition-colors ${
+                    annualBonusMode === mode
+                      ? 'bg-amber-500 text-white'
+                      : 'bg-transparent text-amber-400 hover:bg-amber-500/20'
+                  }`}
+                >
+                  {mode === 'fixed' ? 'Fixed' : '%'}
+                </button>
+              ))}
             </div>
           </div>
 
-          <div>
-            <div className="mb-1 flex items-center justify-between">
-              <label className="text-[10px] font-semibold uppercase tracking-wider text-amber-300">
-                Bonus Amount
+          {annualBonusMode === 'fixed' ? (
+            <div>
+              <div className="mb-1 flex items-center justify-between">
+                <label className="text-[10px] font-semibold uppercase tracking-wider text-amber-300">Amount</label>
+                <button
+                  onClick={() => onAnnualBonusCurrencyChange((c) => c === 'PKR' ? 'USD' : 'PKR')}
+                  className="rounded px-2 py-0.5 text-[10px] font-bold transition-colors bg-amber-500/20 text-amber-300 hover:bg-amber-500/30"
+                >
+                  {annualBonusCurrency}
+                </button>
+              </div>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-amber-400">
+                  {annualBonusCurrency === 'USD' ? '$' : '₨'}
+                </span>
+                <input
+                  type="number" min="0" placeholder="0" value={annualBonus}
+                  onChange={(e) => onAnnualBonusChange(e.target.value)}
+                  className="w-full rounded-lg border border-amber-500/30 bg-amber-500/10 pl-7 pr-3 py-1.5 text-sm font-semibold text-amber-200 outline-none focus:border-amber-400/60 focus:bg-amber-500/15 transition-colors placeholder:text-amber-900"
+                />
+              </div>
+              {annualBonusCurrency === 'USD' && annualBonus && (
+                <p className="mt-1 text-[10px] text-amber-400/70">
+                  ≈ PKR {Math.round((Number(annualBonus) || 0) * (dollarRate || 1)).toLocaleString()}
+                </p>
+              )}
+            </div>
+          ) : (
+            <div>
+              <label className="mb-1 block text-[10px] font-semibold uppercase tracking-wider text-amber-300">
+                % of Annual Salary
               </label>
-              <button
-                onClick={() => onAnnualBonusCurrencyChange((c) => c === 'PKR' ? 'USD' : 'PKR')}
-                className="rounded px-2 py-0.5 text-[10px] font-bold transition-colors bg-amber-500/20 text-amber-300 hover:bg-amber-500/30"
-              >
-                {annualBonusCurrency}
-              </button>
+              <div className="relative">
+                <input
+                  type="number" min="0" max="100" step="0.5" placeholder="0" value={annualBonus}
+                  onChange={(e) => onAnnualBonusChange(e.target.value)}
+                  className="w-full rounded-lg border border-amber-500/30 bg-amber-500/10 pl-3 pr-8 py-1.5 text-sm font-semibold text-amber-200 outline-none focus:border-amber-400/60 focus:bg-amber-500/15 transition-colors placeholder:text-amber-900"
+                />
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-amber-400">%</span>
+              </div>
+              {annualBonus && baseSalaryPKR > 0 && (
+                <p className="mt-1 text-[10px] text-amber-400/70">
+                  = PKR {Math.round((Number(annualBonus) / 100) * baseSalaryPKR * 12).toLocaleString()} annual
+                </p>
+              )}
             </div>
-            <div className="relative">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-amber-400">
-                {annualBonusCurrency === 'USD' ? '$' : '₨'}
-              </span>
-              <input
-                type="number"
-                min="0"
-                placeholder="0"
-                value={annualBonus}
-                onChange={(e) => onAnnualBonusChange(e.target.value)}
-                className="w-full rounded-lg border border-amber-500/30 bg-amber-500/10 pl-7 pr-3 py-1.5 text-sm font-semibold text-amber-200 outline-none focus:border-amber-400/60 focus:bg-amber-500/15 transition-colors placeholder:text-amber-900"
-              />
-            </div>
-            {annualBonusCurrency === 'USD' && annualBonus && (
-              <p className="mt-1 text-[10px] text-amber-400/70">
-                ≈ PKR {Math.round((Number(annualBonus) || 0) * (dollarRate || 1)).toLocaleString()}
-              </p>
-            )}
-            {annualBonus && Number(annualBonus) > 0 && (
-              <p className="mt-1 text-[11px] text-amber-400">
-                Will appear as a bonus line on your invoice
-              </p>
-            )}
-          </div>
+          )}
+
+          {annualBonus && Number(annualBonus) > 0 && (
+            <p className="mt-2 text-[11px] text-amber-400">Will appear as a bonus line on your invoice</p>
+          )}
         </div>
 
       </div>

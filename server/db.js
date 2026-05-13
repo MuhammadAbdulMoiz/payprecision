@@ -97,6 +97,7 @@ function initSchema(db) {
   // Migrations — add new columns if they don't exist yet
   try { db.exec('ALTER TABLE expenses ADD COLUMN recurring INTEGER NOT NULL DEFAULT 0') } catch (_) {}
   try { db.exec('ALTER TABLE goals ADD COLUMN savings_rate REAL NOT NULL DEFAULT 0.10') } catch (_) {}
+  try { db.exec('ALTER TABLE laptop_reimbursements ADD COLUMN applied INTEGER NOT NULL DEFAULT 1') } catch (_) {}
 }
 
 function _reset() { _db = null }
