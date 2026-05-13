@@ -64,7 +64,7 @@ export default function GoalsPage({ finalSalary }) {
 
       {/* Goals grid */}
       {goals.length > 0 && (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 items-start">
           {goals.map((goal) => (
             <GoalCard
               key={goal.id}

@@ -135,48 +135,50 @@ export default function LoanCard({ loan, goals = [], onDelete, onUpdate, onUploa
         {/* Payment log toggle */}
         <button onClick={() => setShowPayments((v) => !v)}
           className="mt-2 w-full rounded-lg bg-white/10 py-1 text-[11px] font-medium text-white/70 transition-colors hover:bg-white/20 hover:text-white">
-          {showPayments ? 'Hide Payments' : 'Payment Log'}
+          Payment Log
         </button>
       </div>
 
-      {/* Payment log panel */}
+      {/* Payment modal — fixed, centered */}
       {showPayments && (
-        <div className="absolute inset-0 z-20 overflow-y-auto rounded-2xl bg-slate-900/97 p-4">
-          <div className="mb-3 flex items-center justify-between">
-            <p className="text-xs font-bold text-white">Payments · {loan.lenderName}</p>
-            <button onClick={() => setShowPayments(false)} className="text-slate-400 hover:text-white text-xs">✕</button>
-          </div>
-          <form onSubmit={handleAddPayment} className="mb-3 flex gap-1.5 flex-wrap">
-            <input type="number" min="1" placeholder="Amount" value={payAmount}
-              onChange={(e) => setPayAmount(e.target.value)} required
-              className="w-24 rounded border border-white/10 bg-white/5 px-2 py-1 text-[11px] text-white outline-none focus:border-red-400/50" />
-            <input type="date" value={payDate} onChange={(e) => setPayDate(e.target.value)}
-              className="flex-1 min-w-[120px] rounded border border-white/10 bg-white/5 px-2 py-1 text-[11px] text-white outline-none focus:border-red-400/50" />
-            <input type="text" placeholder="Note" value={payNote}
-              onChange={(e) => setPayNote(e.target.value)}
-              className="flex-1 rounded border border-white/10 bg-white/5 px-2 py-1 text-[11px] text-white outline-none focus:border-red-400/50" />
-            <button type="submit"
-              className="rounded bg-red-700 px-2 py-1 text-[11px] font-semibold text-white hover:bg-red-600">
-              +Pay
-            </button>
-          </form>
-          {payments.length === 0 ? (
-            <p className="py-3 text-center text-[11px] text-slate-500">No payments yet.</p>
-          ) : (
-            <div className="max-h-40 space-y-1.5 overflow-y-auto pr-1">
-              {payments.map((p) => (
-                <div key={p.id} className="flex items-center justify-between rounded bg-white/5 px-2.5 py-1.5">
-                  <div>
-                    <span className="text-[11px] font-semibold text-red-400">−{loan.currency} {fmtPKR(p.amount)}</span>
-                    <span className="ml-2 text-[10px] text-slate-400">{fmtDate(p.paymentDate)}</span>
-                    {p.note && <span className="ml-2 text-[10px] text-slate-500">{p.note}</span>}
-                  </div>
-                  <button onClick={() => handleDeletePayment(p.id)}
-                    className="text-slate-600 hover:text-red-400 text-[10px]">✕</button>
-                </div>
-              ))}
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={() => setShowPayments(false)}>
+          <div className="w-full max-w-sm rounded-2xl bg-slate-900 border border-white/10 p-4 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+            <div className="mb-3 flex items-center justify-between">
+              <p className="text-xs font-bold text-white">Payments · {loan.lenderName}</p>
+              <button onClick={() => setShowPayments(false)} className="text-slate-400 hover:text-white text-xs px-1">✕</button>
             </div>
-          )}
+            <form onSubmit={handleAddPayment} className="mb-3 flex gap-1.5 flex-wrap">
+              <input type="number" min="1" placeholder="Amount" value={payAmount}
+                onChange={(e) => setPayAmount(e.target.value)} required autoFocus
+                className="w-24 rounded border border-white/10 bg-white/5 px-2 py-1.5 text-[11px] text-white outline-none focus:border-red-400/50" />
+              <input type="date" value={payDate} onChange={(e) => setPayDate(e.target.value)}
+                className="flex-1 min-w-[120px] rounded border border-white/10 bg-white/5 px-2 py-1.5 text-[11px] text-white outline-none focus:border-red-400/50" />
+              <input type="text" placeholder="Note" value={payNote}
+                onChange={(e) => setPayNote(e.target.value)}
+                className="flex-1 min-w-[120px] rounded border border-white/10 bg-white/5 px-2 py-1.5 text-[11px] text-white outline-none focus:border-red-400/50" />
+              <button type="submit"
+                className="rounded bg-red-700 px-3 py-1.5 text-[11px] font-semibold text-white hover:bg-red-600">
+                +Pay
+              </button>
+            </form>
+            {payments.length === 0 ? (
+              <p className="py-4 text-center text-[11px] text-slate-500">No payments yet.</p>
+            ) : (
+              <div className="max-h-48 space-y-1.5 overflow-y-auto pr-1">
+                {payments.map((p) => (
+                  <div key={p.id} className="flex items-center justify-between rounded-lg bg-white/5 px-2.5 py-1.5">
+                    <div>
+                      <span className="text-[11px] font-semibold text-red-400">−{loan.currency} {fmtPKR(p.amount)}</span>
+                      <span className="ml-2 text-[10px] text-slate-400">{fmtDate(p.paymentDate)}</span>
+                      {p.note && <span className="ml-2 text-[10px] text-slate-500">{p.note}</span>}
+                    </div>
+                    <button onClick={() => handleDeletePayment(p.id)}
+                      className="text-slate-600 hover:text-red-400 text-[10px] ml-2">✕</button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       )}
     </div>

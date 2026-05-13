@@ -174,7 +174,7 @@ export default function LoansSection({ goals = [], loans = [], onAdd, onUpdate, 
         </button>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 items-start">
         {loans.map(loan => (
           <LoanCard
             key={loan.id}

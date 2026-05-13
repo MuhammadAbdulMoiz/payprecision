@@ -151,48 +151,50 @@ export default function GoalCard({ goal, onDelete, onUpdate, finalSalary, linked
         {/* Deposit log toggle */}
         <button onClick={() => setShowDeposits((v) => !v)}
           className="mt-2 w-full rounded-lg bg-white/10 py-1 text-[11px] font-medium text-white/70 transition-colors hover:bg-white/20 hover:text-white">
-          {showDeposits ? 'Hide Deposits' : 'Deposit Log'}
+          Deposit Log
         </button>
       </div>
 
-      {/* Deposit panel */}
+      {/* Deposit modal — fixed, centered, not clipped by card */}
       {showDeposits && (
-        <div className="absolute inset-0 z-20 overflow-y-auto rounded-2xl bg-slate-900/97 p-4">
-          <div className="mb-3 flex items-center justify-between">
-            <p className="text-xs font-bold text-white">Deposit Log · {goal.name}</p>
-            <button onClick={() => setShowDeposits(false)} className="text-slate-400 hover:text-white text-xs">✕</button>
-          </div>
-          <form onSubmit={handleAddDeposit} className="mb-3 flex gap-1.5">
-            <input type="number" min="1" placeholder="Amount" value={depAmount}
-              onChange={(e) => setDepAmount(e.target.value)} required
-              className="w-24 rounded border border-white/10 bg-white/5 px-2 py-1 text-[11px] text-white outline-none focus:border-blue-400/50" />
-            <input type="month" value={depMonth} onChange={(e) => setDepMonth(e.target.value)}
-              className="flex-1 rounded border border-white/10 bg-white/5 px-2 py-1 text-[11px] text-white outline-none focus:border-blue-400/50" />
-            <input type="text" placeholder="Note" value={depNote}
-              onChange={(e) => setDepNote(e.target.value)}
-              className="flex-1 rounded border border-white/10 bg-white/5 px-2 py-1 text-[11px] text-white outline-none focus:border-blue-400/50" />
-            <button type="submit"
-              className="rounded bg-emerald-600 px-2 py-1 text-[11px] font-semibold text-white hover:bg-emerald-500">
-              +Add
-            </button>
-          </form>
-          {deposits.length === 0 ? (
-            <p className="py-3 text-center text-[11px] text-slate-500">No deposits yet.</p>
-          ) : (
-            <div className="max-h-36 space-y-1.5 overflow-y-auto pr-1">
-              {deposits.map((d) => (
-                <div key={d.id} className="flex items-center justify-between rounded bg-white/5 px-2.5 py-1.5">
-                  <div>
-                    <span className="text-[11px] font-semibold text-emerald-400">+PKR {fmtPKR(d.amount)}</span>
-                    <span className="ml-2 text-[10px] text-slate-400">{fmtMonth(d.month)}</span>
-                    {d.note && <span className="ml-2 text-[10px] text-slate-500">{d.note}</span>}
-                  </div>
-                  <button onClick={() => handleDeleteDeposit(d.id)}
-                    className="text-slate-600 hover:text-red-400 text-[10px]">✕</button>
-                </div>
-              ))}
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={() => setShowDeposits(false)}>
+          <div className="w-full max-w-sm rounded-2xl bg-slate-900 border border-white/10 p-4 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+            <div className="mb-3 flex items-center justify-between">
+              <p className="text-xs font-bold text-white">Deposit Log · {goal.name}</p>
+              <button onClick={() => setShowDeposits(false)} className="text-slate-400 hover:text-white text-xs px-1">✕</button>
             </div>
-          )}
+            <form onSubmit={handleAddDeposit} className="mb-3 flex gap-1.5 flex-wrap">
+              <input type="number" min="1" placeholder="Amount (PKR)" value={depAmount}
+                onChange={(e) => setDepAmount(e.target.value)} required autoFocus
+                className="w-28 rounded border border-white/10 bg-white/5 px-2 py-1.5 text-[11px] text-white outline-none focus:border-emerald-400/50" />
+              <input type="month" value={depMonth} onChange={(e) => setDepMonth(e.target.value)}
+                className="flex-1 min-w-[110px] rounded border border-white/10 bg-white/5 px-2 py-1.5 text-[11px] text-white outline-none focus:border-emerald-400/50" />
+              <input type="text" placeholder="Note (optional)" value={depNote}
+                onChange={(e) => setDepNote(e.target.value)}
+                className="flex-1 min-w-[120px] rounded border border-white/10 bg-white/5 px-2 py-1.5 text-[11px] text-white outline-none focus:border-emerald-400/50" />
+              <button type="submit"
+                className="rounded bg-emerald-600 px-3 py-1.5 text-[11px] font-semibold text-white hover:bg-emerald-500">
+                +Add
+              </button>
+            </form>
+            {deposits.length === 0 ? (
+              <p className="py-4 text-center text-[11px] text-slate-500">No deposits yet.</p>
+            ) : (
+              <div className="max-h-48 space-y-1.5 overflow-y-auto pr-1">
+                {deposits.map((d) => (
+                  <div key={d.id} className="flex items-center justify-between rounded-lg bg-white/5 px-2.5 py-1.5">
+                    <div>
+                      <span className="text-[11px] font-semibold text-emerald-400">+PKR {fmtPKR(d.amount)}</span>
+                      <span className="ml-2 text-[10px] text-slate-400">{fmtMonth(d.month)}</span>
+                      {d.note && <span className="ml-2 text-[10px] text-slate-500">{d.note}</span>}
+                    </div>
+                    <button onClick={() => handleDeleteDeposit(d.id)}
+                      className="text-slate-600 hover:text-red-400 text-[10px] ml-2">✕</button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       )}
     </div>

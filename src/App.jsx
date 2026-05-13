@@ -220,7 +220,7 @@ export default function App() {
               onGlobalToggle={handleCurrencyToggle}
             />
 
-            <div className="grid gap-4 md:grid-cols-2">
+            <div className="grid gap-4 md:grid-cols-2 items-start">
               <div className="space-y-4">
                 <BaseParameters
                   employeeType={employeeType}

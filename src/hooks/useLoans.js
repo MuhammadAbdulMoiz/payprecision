@@ -48,7 +48,7 @@ export function useLoans() {
         const res = await fetch(`/api/images/${id}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ data: e.target.result }),
+          body: JSON.stringify({ imageData: e.target.result }),
         })
         if (res.ok) {
           await updateLoan(id, { hasImage: true })
